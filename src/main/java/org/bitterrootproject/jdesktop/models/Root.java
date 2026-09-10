@@ -1,28 +1,19 @@
 package org.bitterrootproject.jdesktop.models;
 
-import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.EqualsAndHashCode;
 
 
+/**
+ * This is the third component of a call number. Most (if not all) call numbers will have a root.
+ * <br>
+ * <b>Parent part:</b> none
+ */
+
+@EqualsAndHashCode(callSuper = true)
 @DatabaseTable(tableName = "roots")
-@NoArgsConstructor
 @AllArgsConstructor
-public @Data class Root implements CallNumberPart {
-	
-	@DatabaseField(generatedId = true)
-	private long id;
-	
-	@DatabaseField(canBeNull = false)
-	private String number;
-	
-	@DatabaseField(canBeNull = false)
-	private String name;
-	
-	public String toString() {
-		return String.format("%s - %s", this.number, this.name);
-	}
-}
+public @Data class Root extends CallNumberPart {}
