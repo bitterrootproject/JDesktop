@@ -347,6 +347,7 @@ public class InventoryManagerController implements Initializable {
 				log.debug("Decided to reload subjects");
 				loadSubjects();
 				listSubject.getSelectionModel().select((Subject) lastSavedPart);
+				loadDomains((Subject) lastSavedPart);
 			}
 			case "Domain" -> {
 				Subject subject = ((Domain) lastSavedPart).getSubject();
@@ -358,12 +359,15 @@ public class InventoryManagerController implements Initializable {
 				log.debug("Decided to reload roots");
 				loadRoots();
 				listRoot.getSelectionModel().select((Root) lastSavedPart);
+				loadAspects((Root) lastSavedPart);
+				loadTopics(null);
 			}
 			case "Aspect" -> {
 				Root root = ((Aspect) lastSavedPart).getRoot();
 				log.debug("Decided to reload aspects with parent root_id {}", root.getId());
 				loadAspects(root);
 				listAspect.getSelectionModel().select((Aspect) lastSavedPart);
+				loadTopics((Aspect) lastSavedPart);
 			}
 			case "Topic" -> {
 				Aspect aspect = ((Topic) lastSavedPart).getAspect();
