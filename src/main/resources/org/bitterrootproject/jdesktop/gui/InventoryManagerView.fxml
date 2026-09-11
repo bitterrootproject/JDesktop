@@ -48,8 +48,12 @@
                      <ListView fx:id="listSubject" onMouseClicked="#onMouseClickListSubject" prefWidth="129.0" />
                         <HBox prefHeight="36.0" prefWidth="129.0">
                            <children>
-                              <Pane prefHeight="200.0" prefWidth="200.0" />
-                           <Button fx:id="buttonNewSubject" minWidth="-Infinity" onAction="#onClickButtonNewSubject" text="New">
+                           <Button minWidth="-Infinity" onAction="#onClickButtonNewSubject" text="New">
+                                 <HBox.margin>
+                                    <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
+                                 </HBox.margin>
+                              </Button>
+                              <Button minWidth="-Infinity" mnemonicParsing="false" onAction="#onClickButtonDeleteSubject" text="Delete" HBox.hgrow="ALWAYS">
                                  <HBox.margin>
                                     <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                                  </HBox.margin>
@@ -71,8 +75,12 @@
                      <ListView fx:id="listDomain" onMouseClicked="#onMouseClickListDomain" prefWidth="171.0" />
                         <HBox prefHeight="36.0" prefWidth="200.0">
                            <children>
-                              <Pane prefHeight="200.0" prefWidth="200.0" />
-                           <Button fx:id="buttonNewDomain" minWidth="-Infinity" onAction="#onClickButtonNewDomain" text="New">
+                           <Button minWidth="-Infinity" onAction="#onClickButtonNewDomain" text="New">
+                                 <HBox.margin>
+                                    <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
+                                 </HBox.margin>
+                              </Button>
+                              <Button minWidth="-Infinity" mnemonicParsing="false" onAction="#onClickButtonDeleteDomain" text="Delete">
                                  <HBox.margin>
                                     <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                                  </HBox.margin>
@@ -91,11 +99,15 @@
                               <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                            </VBox.margin>
                         </TextField>
-                     <ListView fx:id="listRoot" />
+                     <ListView fx:id="listRoot" onMouseClicked="#onMouseClickListRoot" />
                         <HBox prefHeight="36.0" prefWidth="200.0">
                            <children>
-                              <Pane prefHeight="200.0" prefWidth="200.0" />
-                           <Button fx:id="buttonNewRoot" minWidth="-Infinity" text="New">
+                           <Button minWidth="-Infinity" onAction="#onClickButtonNewRoot" text="New">
+                                 <HBox.margin>
+                                    <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
+                                 </HBox.margin>
+                              </Button>
+                              <Button minWidth="-Infinity" mnemonicParsing="false" onAction="#onClickButtonDeleteRoot" text="Delete">
                                  <HBox.margin>
                                     <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                                  </HBox.margin>
@@ -114,11 +126,15 @@
                               <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                            </VBox.margin>
                         </TextField>
-                     <ListView fx:id="listAspect" prefWidth="133.0" />
+                     <ListView fx:id="listAspect" onMouseClicked="#onMouseClickListAspect" prefWidth="133.0" />
                         <HBox prefHeight="36.0" prefWidth="200.0">
                            <children>
-                              <Pane prefHeight="200.0" prefWidth="200.0" />
-                           <Button fx:id="buttonNewAspect" minWidth="-Infinity" text="New">
+                           <Button minWidth="-Infinity" onAction="#onClickButtonNewAspect" text="New">
+                                 <HBox.margin>
+                                    <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
+                                 </HBox.margin>
+                              </Button>
+                              <Button minWidth="-Infinity" mnemonicParsing="false" onAction="#onClickButtonDeleteAspect" text="Delete">
                                  <HBox.margin>
                                     <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                                  </HBox.margin>
@@ -137,11 +153,15 @@
                               <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                            </VBox.margin>
                         </TextField>
-                     <ListView fx:id="listTopic" />
+                     <ListView fx:id="listTopic" onMouseClicked="#onMouseClickListTopic" />
                         <HBox prefHeight="36.0" prefWidth="200.0">
                            <children>
-                              <Pane prefHeight="200.0" prefWidth="200.0" />
-                           <Button fx:id="buttonNewTopic" minWidth="-Infinity" text="New">
+                           <Button minWidth="-Infinity" onAction="#onClickButtonNewTopic" text="New">
+                                 <HBox.margin>
+                                    <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
+                                 </HBox.margin>
+                              </Button>
+                              <Button minWidth="-Infinity" mnemonicParsing="false" onAction="#onClickButtonDeleteTopic" text="Delete">
                                  <HBox.margin>
                                     <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                                  </HBox.margin>
@@ -160,11 +180,15 @@
                               <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                            </VBox.margin>
                         </TextField>
-                     <ListView fx:id="listAuthorPublisher" />
+                     <ListView fx:id="listAuthorPublisher" onMouseClicked="#onMouseClickListAuthorPublisher" />
                         <HBox prefHeight="36.0" prefWidth="200.0">
                            <children>
-                              <Pane prefHeight="200.0" prefWidth="200.0" />
-                           <Button fx:id="buttonNewAuthorPublisher" minWidth="-Infinity" text="New">
+                           <Button minWidth="-Infinity" onAction="#onClickButtonNewAuthorPublisher" text="New">
+                                 <HBox.margin>
+                                    <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
+                                 </HBox.margin>
+                              </Button>
+                              <Button minWidth="-Infinity" mnemonicParsing="false" onAction="#onClickButtonDeleteAuthorPublisher" text="Delete">
                                  <HBox.margin>
                                     <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                                  </HBox.margin>
@@ -200,7 +224,7 @@
                                  <Insets right="10.0" top="9.0" />
                               </HBox.margin>
                            </Label>
-                           <Button fx:id="buttonSave" mnemonicParsing="false" onAction="#onClickButtonSave" text="Save">
+                           <Button mnemonicParsing="false" onAction="#onClickButtonSave" text="Save">
                               <HBox.margin>
                                  <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                               </HBox.margin>
@@ -256,12 +280,12 @@
                                  <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                               </GridPane.margin>
                            </Label>
-                           <TextField fx:id="selectedPartNameField" GridPane.columnIndex="4">
+                           <TextField fx:id="selectedPartNameField" onKeyPressed="#onEnterKeyPressedInEditFields" GridPane.columnIndex="4">
                               <GridPane.margin>
                                  <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                               </GridPane.margin>
                            </TextField>
-                           <TextField fx:id="selectedPartNumberField" GridPane.columnIndex="4" GridPane.rowIndex="1">
+                           <TextField fx:id="selectedPartNumberField" onKeyPressed="#onEnterKeyPressedInEditFields" GridPane.columnIndex="4" GridPane.rowIndex="1">
                               <GridPane.margin>
                                  <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                               </GridPane.margin>

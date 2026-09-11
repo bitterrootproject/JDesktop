@@ -1,5 +1,7 @@
 package org.bitterrootproject.jdesktop.models;
 
+import com.j256.ormlite.dao.ForeignCollection;
+import com.j256.ormlite.field.ForeignCollectionField;
 import com.j256.ormlite.table.DatabaseTable;
 
 import lombok.*;
@@ -15,4 +17,11 @@ import lombok.*;
 
 @Getter @Setter
 @AllArgsConstructor
-public class Subject extends CallNumberPart {}
+@NoArgsConstructor
+public class Subject extends CallNumberPart implements HasChildPart<Domain> {
+	@ForeignCollectionField
+	private ForeignCollection<Domain> domains;
+	public ForeignCollection<Domain> getChildCollection() { return domains; }
+	public Class<Domain> getChildClass() { return Domain.class; }
+	public int countChildren() { return domains.size(); }
+}

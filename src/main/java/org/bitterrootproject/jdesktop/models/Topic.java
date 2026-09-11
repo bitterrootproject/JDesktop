@@ -26,7 +26,7 @@ public class Topic extends CallNumberPart implements HasParentPart<Aspect> {
 	)
 	private Aspect aspect;
 	
-	public static String FIELD_NAME_ASPECT = "aspect";
+	public static String FIELD_NAME_ASPECT = "aspect_id";
 	@SuppressWarnings("unused")
 	public static String FIELD_NAME_PARENT = Topic.FIELD_NAME_ASPECT;
 	

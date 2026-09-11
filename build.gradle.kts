@@ -80,19 +80,11 @@ dependencies {
     implementation("org.xerial:sqlite-jdbc:3.53.4.0")
 
     // Logging
-    implementation("org.slf4j:slf4j-api:2.0.18")
-    implementation("org.slf4j:slf4j-simple:2.0.18")
+    compileOnly("org.slf4j:slf4j-api:2.0.18")
+    runtimeOnly("org.slf4j:slf4j-simple:2.0.18")
 
     implementation("org.apache.commons:commons-lang3:3.20.0")
     implementation("org.jetbrains:annotations:26.1.0")
-//    implementation("org.slf4j:slf4j-nop:2.0.18")
-//    implementation("org.apache.logging.log4j:log4j-api:2.26.1")
-//    implementation("org.apache.logging.log4j:log4j-slf4j2-impl:2.26.1")
-
-//    implementation("org.tinylog:tinylog-api:2.7.0")
-//    implementation("org.tinylog:tinylog-impl:2.7.0")
-
-//    javafxModules.forEach { implementation("org.openjfx:javafx-${it}:${javafxVersion}:${javafxClassifier}") }
 }
 
 tasks.withType<Test> {

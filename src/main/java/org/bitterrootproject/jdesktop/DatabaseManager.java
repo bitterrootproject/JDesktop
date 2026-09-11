@@ -21,6 +21,8 @@ import java.sql.SQLException;
 public final class DatabaseManager {
 	// private static final String DATABASE_DRIVER = "org.sqlite.JDBC";
 	
+	private static final boolean USE_LOCAL_DB = true;
+	
 	/**
 	 * Get the String path to the database file.
 	 * @param local Store the database file in the repository. Useful for testing.
@@ -134,7 +136,7 @@ public final class DatabaseManager {
 	 */
 	private static JdbcConnectionSource openConnection() throws SQLException {
 		// try {
-		boolean useLocalLogging = System.getProperty("org.bitterrootproject.jdesktop.use-local-db").equals("true");
+		boolean useLocalLogging = USE_LOCAL_DB;
 		return new JdbcConnectionSource(getDatabaseUrl(useLocalLogging));
 		// } catch (IOException e) {
 		// 	log.error("Failed to create or get database file.", e);

@@ -10,6 +10,8 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.event.ActionEvent;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.util.Callback;
 import javafx.scene.paint.Color;
 
@@ -19,7 +21,9 @@ import javafx.util.Duration;
 
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.lang3.StringUtils;
 import org.bitterrootproject.jdesktop.DatabaseManager;
+import org.bitterrootproject.jdesktop.GuiUtils;
 import org.bitterrootproject.jdesktop.models.*;
 
 import javafx.scene.input.MouseEvent;
@@ -30,6 +34,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.sql.SQLException;
+import java.util.Optional;
 import java.util.ResourceBundle;
 
 /**
@@ -83,26 +88,6 @@ public class InventoryManagerController implements Initializable {
 	private ListView<AuthorPublisher> listAuthorPublisher;
 	
 	
-	// New buttons
-	@FXML
-	private Button buttonNewSubject;
-	
-	@FXML
-	private Button buttonNewDomain;
-	
-	@FXML
-	private Button buttonNewRoot;
-	
-	@FXML
-	private Button buttonNewAspect;
-	
-	@FXML
-	private Button buttonNewTopic;
-	
-	@FXML
-	private Button buttonNewAuthorPublisher;
-	
-	
 	
 	// LOWER HALF: part creation/editing //
 	
@@ -123,8 +108,7 @@ public class InventoryManagerController implements Initializable {
 	@FXML
 	private TextField selectedPartNumberField;
 	
-	@FXML
-	private Button buttonSave;
+	
 	
 	/// The label of the lower half of the window (the edit pane). It should contain the selected part's *type*, or
 	/// the type of the new part being made.
@@ -160,6 +144,8 @@ public class InventoryManagerController implements Initializable {
 		this.dbManager = DatabaseManager.getInstance();
 
 		loadSubjects();
+		loadRoots();
+		loadAuthorPublishers();
 	}
 	
 	
@@ -344,6 +330,288 @@ public class InventoryManagerController implements Initializable {
 		}
 	}
 	
+	
+	private void saveAndReloadPartList() {
+		if (!savePartFromEditing()) {
+			// Don't reload anything if it didn't successfully save.
+			scheduleSaveStatusClear();
+			return;
+		}
+		
+		String lastSavedPartClassName = lastSavedPart.getClass().getSimpleName();
+		log.debug("Last saved part class: {}", lastSavedPartClassName);
+		
+		// Reload the list of parts that just had a part saved or created
+		switch (lastSavedPartClassName) {
+			case "Subject" -> {
+				log.debug("Decided to reload subjects");
+				loadSubjects();
+				listSubject.getSelectionModel().select((Subject) lastSavedPart);
+			}
+			case "Domain" -> {
+				Subject subject = ((Domain) lastSavedPart).getSubject();
+				log.debug("Decided to reload domains with parent subject_id {}", subject.getId());
+				loadDomains(subject);
+				listDomain.getSelectionModel().select((Domain) lastSavedPart);
+			}
+			case "Root" -> {
+				log.debug("Decided to reload roots");
+				loadRoots();
+				listRoot.getSelectionModel().select((Root) lastSavedPart);
+			}
+			case "Aspect" -> {
+				Root root = ((Aspect) lastSavedPart).getRoot();
+				log.debug("Decided to reload aspects with parent root_id {}", root.getId());
+				loadAspects(root);
+				listAspect.getSelectionModel().select((Aspect) lastSavedPart);
+			}
+			case "Topic" -> {
+				Aspect aspect = ((Topic) lastSavedPart).getAspect();
+				log.debug("Decided to reload topics with parent aspect_id {}", aspect.getId());
+				loadTopics(aspect);
+				listTopic.getSelectionModel().select((Topic) lastSavedPart);
+			}
+			case "AuthorPublisher" -> {
+				log.debug("Decided to reload authors/publishers");
+				loadAuthorPublishers();
+				listAuthorPublisher.getSelectionModel().select((AuthorPublisher) lastSavedPart);
+			}
+			default -> { }
+		}
+		
+		clearEditPane();
+		
+		// Clear labelSaveStatus after a few seconds
+		scheduleSaveStatusClear();
+	}
+	
+	
+	/**
+	 * Safely and cautiously delete the part.
+	 * <ul>
+	 *     <li>
+	 *          If the part has a child model (is the parent of another model), and there
+	 * 	        is at least one child part which references it, a warning will be displayed informing the user as such,
+	 * 	        though they can continue anyway, if so desired. If they choose to, the child parts will be deleted
+	 * 	        before deleting the parent part.
+	 *     </li>
+	 *     <li>If the part is not a parent, it is simply deleted.</li>
+	 *     <li>
+	 *         If the part has grandchildren, an error is displayed to the user, and this function will exit
+	 *         {@code false}. Removing grandchild objects could have massive unintended consequences and is thus
+	 *         explicitly unsupported.
+	 *     </li>
+	 * </ul>
+	 *
+	 * @param selectedPart The part to delete.
+	 * @return {@code true} if the deletion was successful, {@code false} otherwise.
+	 */
+	private boolean safelyDeletePart(@NotNull CallNumberPart selectedPart) {
+		// This part can have children
+		if (selectedPart.hasChild()) {
+			log.debug("Parent {} can have children", selectedPart);
+			
+			var children = ((HasChildPart<?>) selectedPart).getChildCollection();
+			int countChildren = children.size();
+			String parentTypeName = selectedPart.getClass().getSimpleName().toLowerCase();
+			var childClass = ((HasChildPart<?>) selectedPart).getChildClass();
+			String childTypeName = childClass.getSimpleName().toLowerCase();
+
+			// This part has associated children
+			if (countChildren > 0) {
+				log.info("Selected parent part '{}' has at least one linked child", selectedPart.formatString());
+				// Multi-level relationships aren't supported yet.
+				if (children.stream().anyMatch(c -> (
+						c.hasChild() && ((HasChildPart<?>) c).countChildren() > 0)
+				)) {
+					log.warn("User tried to delete parent part '{}' that has grandchildren, which is not allowed.", selectedPart.formatString());
+					Alert doubleRecursiveChildrenAlert = new Alert(Alert.AlertType.ERROR);
+					doubleRecursiveChildrenAlert.setHeaderText(null);
+					doubleRecursiveChildrenAlert.setTitle("Deletion error");
+					doubleRecursiveChildrenAlert.setContentText("This part has at least one child which itself has " +
+							                                            "at least one child. Deleting multi-level" +
+							                                            "relationships like these are not currently" +
+							                                            "supported. Please delete the grandchild parts" +
+							                                            "first and try again.");
+					doubleRecursiveChildrenAlert.showAndWait();
+					return false;
+				}
+				
+				// Prompt the user
+				Alert warningUnsafeDelete = new Alert(
+						Alert.AlertType.WARNING,
+						String.format(
+								"There %s still %d %s which reference%s this %s. Deleting this %s would " +
+										"also delete %s %s. Are you sure you want to delete this %s?",
+								(countChildren > 1 ? "are" : "is"),  // %s - is/are
+								countChildren,  // %d
+								childTypeName + (countChildren > 1 ? "s" : ""),  // %s - plural
+								(countChildren > 1 ? "" : "s"),  // %s - plural of reference(s)
+								parentTypeName,  // %s
+								parentTypeName,  // %s
+								(countChildren > 1 ? "those" : "that"),  // %s - plural
+								childTypeName + (countChildren > 1 ? "s" : ""),  // %s - plural
+								parentTypeName  // %s
+								
+						),
+						ButtonType.OK, ButtonType.CANCEL
+				);
+				warningUnsafeDelete.setTitle("Warning: Unsafe Delete");
+				warningUnsafeDelete.setHeaderText(String.format("Deletion of %s '%s'", StringUtils.capitalize(parentTypeName), selectedPart.formatString()));
+				
+				Optional<ButtonType> result = warningUnsafeDelete.showAndWait();
+				
+			// 	User understands the implications and chooses to delete anyway
+				if (result.isPresent() && result.get() == ButtonType.OK) {
+					log.info("Attempting to cascade-delete {} '{}'", selectedPart.getClass().getSimpleName(), selectedPart.formatString());
+					@SuppressWarnings("unchecked")
+					Dao<CallNumberPart, Long> parentDao = (Dao<CallNumberPart, Long>) dbManager.getDao(selectedPart.getClass());
+					
+					try {
+						String formattedParentName = selectedPart.formatString();
+						// First, delete children
+						children.clear();
+						// Then, delete the parent
+						parentDao.delete(selectedPart);
+						
+						log.info("Cascade-delete of {} succeeded", selectedPart);
+						
+						Alert recursiveDeleteSuccess = new Alert(Alert.AlertType.INFORMATION);
+						recursiveDeleteSuccess.setTitle(StringUtils.capitalize(parentTypeName) + " deletion success");
+						recursiveDeleteSuccess.setHeaderText(null);
+						recursiveDeleteSuccess.setContentText(String.format(
+								"Successfully deleted %s '%s' and %d %s which referenced it.",
+								parentTypeName,
+								formattedParentName,
+								countChildren,
+								childTypeName + (countChildren > 1 ? "s" : "")
+						));
+						recursiveDeleteSuccess.showAndWait();
+						return true;
+						
+					} catch (SQLException e) {
+						log.error("Failed to delete the parent: {}", selectedPart, e);
+						GuiUtils.displayJavaExceptionAlert("Failed to delete the parent object.", e);
+						return false;
+					}
+					
+			//  User backs out
+				} else {
+					log.info("User backed out of cascade-delete of {}", selectedPart);
+					Alert cancelUnsafeAlert = new Alert(Alert.AlertType.INFORMATION);
+					cancelUnsafeAlert.setHeaderText(null);
+					cancelUnsafeAlert.setTitle(StringUtils.capitalize(parentTypeName) + " deletion cancelled");
+					cancelUnsafeAlert.setContentText(StringUtils.capitalize(parentTypeName) + " deletion cancelled.");
+					cancelUnsafeAlert.showAndWait();
+					return false;
+				}
+				
+		//  There are no associated children
+			} else {
+				return simpleDeletePart(selectedPart, false);
+			}
+		} else {
+			return simpleDeletePart(selectedPart, true);
+		}
+	}
+	
+	
+	/**
+	 * Naively delete the part, without checking relationships. Assumes that the {@code selectedPart} either doesn't
+	 * have a child model or (if it does) no child actively relates to this part. This should not be run directly; use
+	 * {@link InventoryManagerController#safelyDeletePart(CallNumberPart)} instead.
+	 *
+	 * @param selectedPart Must either lack a child model or lack any referenced children.
+	 * @param prompt Whether the user will be prompted to delete.
+	 * @return {@code true} if the deletion was successful, {@code false} otherwise.
+	 */
+	private boolean simpleDeletePart(@NotNull CallNumberPart selectedPart, boolean prompt) {
+		assert (
+				!selectedPart.hasChild()
+				|| ((HasChildPart<?>) selectedPart).getChildCollection().stream().noneMatch(c -> (
+						c.hasChild() && ((HasChildPart<?>) c).countChildren() > 0)
+				)
+		);
+		
+		if (prompt) {
+			
+			String selectedTypeName = selectedPart.getClass().getSimpleName().toLowerCase();
+			
+			Alert simpleDeletionAlert = new Alert(Alert.AlertType.CONFIRMATION);
+			simpleDeletionAlert.setHeaderText(null);
+			simpleDeletionAlert.setTitle(StringUtils.capitalize(selectedTypeName) + " deletion");
+			simpleDeletionAlert.setContentText(String.format(
+					"Delete %s '%s'?",
+					selectedTypeName,
+					selectedPart.formatString()
+			));
+			
+			Optional<ButtonType> result = simpleDeletionAlert.showAndWait();
+			
+			// Confirmed
+			if (result.isPresent() && result.get() == ButtonType.OK) {
+				@SuppressWarnings("unchecked")
+				Dao<CallNumberPart, Long> parentDao = (Dao<CallNumberPart, Long>) dbManager.getDao(
+						selectedPart.getClass());
+				
+				log.info("Attempting simple deletion (with-prompt) of {}", selectedPart);
+				
+				try {
+					String formattedParentName = selectedPart.formatString();
+					String selToStr = selectedPart.toString();
+					
+					// delete the thing
+					parentDao.delete(selectedPart);
+					
+					log.info("Successfully deleted (with-prompt) {}", selToStr);
+					Alert simpleDeleteSuccess = new Alert(Alert.AlertType.INFORMATION);
+					simpleDeleteSuccess.setTitle(StringUtils.capitalize(selectedTypeName) + " deletion success");
+					simpleDeleteSuccess.setHeaderText(null);
+					simpleDeleteSuccess.setContentText(String.format(
+							"Successfully deleted %s '%s'.",
+							selectedTypeName,
+							formattedParentName
+					));
+					simpleDeleteSuccess.showAndWait();
+					return true;
+					
+					
+				} catch (SQLException e) {
+					log.error("Failed to delete (with-prompt) the parent: {}", selectedPart, e);
+					GuiUtils.displayJavaExceptionAlert("Failed to delete the parent object.", e);
+					return false;
+				}
+				
+				//  User backs out
+			} else {
+				log.info("User backed out of simple delete (with-prompt) of {}", selectedPart);
+				Alert cancelUnsafeAlert = new Alert(Alert.AlertType.INFORMATION);
+				cancelUnsafeAlert.setHeaderText(null);
+				cancelUnsafeAlert.setTitle(StringUtils.capitalize(selectedTypeName) + " deletion cancelled");
+				cancelUnsafeAlert.setContentText(StringUtils.capitalize(selectedTypeName) + " deletion cancelled.");
+				cancelUnsafeAlert.showAndWait();
+				return false;
+			}
+			
+		// no prompt
+		} else {
+			log.info("Attempting simple deletion (no-prompt) of {}", selectedPart);
+			try {
+				@SuppressWarnings("unchecked")
+				Dao<CallNumberPart, Long> parentDao = (Dao<CallNumberPart, Long>) dbManager.getDao(selectedPart.getClass());
+				parentDao.delete(selectedPart);
+				String selToStr = selectedPart.toString();
+				log.info("Successfully deleted (no-prompt) {}", selToStr);
+				return true;
+			} catch (SQLException e) {
+				log.error("Failed to delete (no-prompt) the parent: {}", selectedPart, e);
+				GuiUtils.displayJavaExceptionAlert("Failed to delete the parent object.", e);
+				return false;
+			}
+		}
+	}
+	
+	
 	/**
 	 * Sort of clear the editor pane. The actual fields themselves stay filled with the last content.
 	 * This basically exists just to clear some variables.
@@ -367,19 +635,82 @@ public class InventoryManagerController implements Initializable {
 		}
 	}
 	
-	private void loadDomains(@NotNull Subject parentSubject) {
-		try {
-			QueryBuilder<Domain, Long> queryBuilder = dbManager.domains.queryBuilder();
-			queryBuilder.where().eq(Domain.FIELD_NAME_SUBJECT, parentSubject.getId());
-			PreparedQuery<Domain> preparedQuery = queryBuilder.prepare();
-			ObservableList<Domain> items = FXCollections.observableArrayList(dbManager.domains.query(preparedQuery));
-			listDomain.setItems(items);
-			
-		} catch (SQLException e) {
-			log.error("Failed to query domains with parent subject id '{}'", parentSubject, e);
+	private void loadDomains(@Nullable Subject parentSubject) {
+		if (parentSubject == null) {
 			listDomain.setItems(null);
+		} else {
+			try {
+				QueryBuilder<Domain, Long> queryBuilder = dbManager.domains.queryBuilder();
+				queryBuilder.where().eq(Domain.FIELD_NAME_SUBJECT, parentSubject.getId());
+				PreparedQuery<Domain> preparedQuery = queryBuilder.prepare();
+				ObservableList<Domain> items = FXCollections.observableArrayList(dbManager.domains.query(preparedQuery));
+				listDomain.setItems(items);
+				
+			} catch (SQLException e) {
+				log.error("Failed to query domains with parent subject id '{}'", parentSubject.getId(), e);
+				listDomain.setItems(null);
+			}
 		}
 	}
+	
+	private void loadRoots() {
+		try {
+			var roots = dbManager.roots.queryForAll();
+			listRoot.setItems(FXCollections.observableArrayList(roots));
+		} catch (SQLException e) {
+			log.error("Failed to get roots", e);
+			listRoot.setItems(null);
+		}
+	}
+	
+	private void loadAspects(@Nullable Root parentRoot) {
+		if (parentRoot == null) {
+			listAspect.setItems(null);
+		} else {
+			try {
+				QueryBuilder<Aspect, Long> queryBuilder = dbManager.aspects.queryBuilder();
+				queryBuilder.where().eq(Aspect.FIELD_NAME_ROOT, parentRoot.getId());
+				PreparedQuery<Aspect> preparedQuery = queryBuilder.prepare();
+				ObservableList<Aspect> items = FXCollections.observableArrayList(
+						dbManager.aspects.query(preparedQuery));
+				listAspect.setItems(items);
+			} catch (SQLException e) {
+				log.error("Failed to query aspects with parent root id '{}'", parentRoot.getId(), e);
+				listAspect.setItems(null);
+			}
+		}
+	}
+	
+	private void loadTopics(@Nullable Aspect parentAspect) {
+		if (parentAspect == null) {
+			listTopic.setItems(null);
+		} else {
+			try {
+				QueryBuilder<Topic, Long> queryBuilder = dbManager.topics.queryBuilder();
+				queryBuilder.where().eq(Topic.FIELD_NAME_ASPECT, parentAspect.getId());
+				PreparedQuery<Topic> preparedQuery = queryBuilder.prepare();
+				ObservableList<Topic> items = FXCollections.observableArrayList(dbManager.topics.query(preparedQuery));
+				listTopic.setItems(items);
+			} catch (SQLException e) {
+				log.error("Failed to query topics with parent aspect id '{}'", parentAspect.getId(), e);
+				listTopic.setItems(null);
+			}
+		}
+	}
+	
+	private void loadAuthorPublishers() {
+		try {
+			var authorPublishers = dbManager.authorPublishers.queryForAll();
+			listAuthorPublisher.setItems(FXCollections.observableArrayList(authorPublishers));
+		} catch (SQLException e) {
+			log.error("Failed to get authors/publishers", e);
+			listAuthorPublisher.setItems(null);
+		}
+	}
+	
+	
+	
+	// LIST CLICK HANDLERS //
 	
 	@FXML
 	private void onMouseClickListSubject(MouseEvent mouseEvent) {
@@ -387,6 +718,9 @@ public class InventoryManagerController implements Initializable {
 		
 		Subject selectedSubject = listSubject.getSelectionModel().getSelectedItem();
 		log.debug("Selected subject: {}", selectedSubject);
+		if (selectedSubject == null) {
+			return;
+		}
 		
 		selectPartForEditing(selectedSubject);
 		// this func also sets `selectedPart`
@@ -400,16 +734,76 @@ public class InventoryManagerController implements Initializable {
 		
 		Domain selectedDomain = listDomain.getSelectionModel().getSelectedItem();
 		log.debug("Selected domain: {}", selectedDomain);
+		if (selectedDomain == null) {
+			return;
+		}
 		
-		Subject subject = selectedDomain.getSubject();
-		parentPart = subject;
+		parentPart = selectedDomain.getSubject();
 		
 		selectPartForEditing(selectedDomain);
 		// this func also sets `selectedPart`
-		
-		loadDomains(subject);
 	}
 	
+	@FXML
+	private void onMouseClickListRoot(MouseEvent mouseEvent) {
+		mouseEvent.consume();
+		
+		Root selectedRoot = listRoot.getSelectionModel().getSelectedItem();
+		log.debug("Selected root: {}", selectedRoot);
+		if (selectedRoot == null) {
+			return;
+		}
+		
+		selectPartForEditing(selectedRoot);
+		
+		loadAspects(selectedRoot);
+	}
+	
+	@FXML
+	private void onMouseClickListAspect(MouseEvent mouseEvent) {
+		mouseEvent.consume();
+		
+		Aspect selectedAspect = listAspect.getSelectionModel().getSelectedItem();
+		log.debug("Selected aspect: {}", selectedAspect);
+		if (selectedAspect == null) {
+			return;
+		}
+		
+		selectPartForEditing(selectedAspect);
+		
+		loadTopics(selectedAspect);
+	}
+	
+	@FXML
+	private void onMouseClickListTopic(MouseEvent mouseEvent) {
+		mouseEvent.consume();
+		
+		Topic selectedTopic = listTopic.getSelectionModel().getSelectedItem();
+		log.debug("Selected topic: {}", selectedTopic);
+		if (selectedTopic == null) {
+			return;
+		}
+		
+		selectPartForEditing(selectedTopic);
+	}
+	
+	@FXML
+	private void onMouseClickListAuthorPublisher(MouseEvent mouseEvent) {
+		mouseEvent.consume();
+		
+		AuthorPublisher selectedAuthorPublisher = listAuthorPublisher.getSelectionModel().getSelectedItem();
+		log.debug("Selected author/publisher: {}", selectedAuthorPublisher);
+		if (selectedAuthorPublisher == null) {
+			return;
+		}
+		
+		selectPartForEditing(selectedAuthorPublisher);
+	}
+	
+	
+	// BUTTON HANDLERS //
+	
+	// Create
 	
 	@FXML
 	private void onClickButtonNewSubject(ActionEvent event) {
@@ -426,44 +820,163 @@ public class InventoryManagerController implements Initializable {
 		event.consume();
 		log.debug("Button clicked: new domain");
 		
-		prepareEditPaneForNewPart(this.selectedPart, Domain.class);
+		prepareEditPaneForNewPart(listSubject.getSelectionModel().getSelectedItem(), Domain.class);
 		
 		selectedPartNameField.requestFocus();
 	}
-
+	
+	@FXML
+	private void onClickButtonNewRoot(ActionEvent event) {
+		event.consume();
+		log.debug("Button clicked: new root");
+		
+		prepareEditPaneForNewPart(null, Root.class);
+		
+		selectedPartNameField.requestFocus();
+	}
+	
+	@FXML
+	private void onClickButtonNewAspect(ActionEvent event) {
+		event.consume();
+		log.debug("Button clicked: new aspect");
+		
+		prepareEditPaneForNewPart(listRoot.getSelectionModel().getSelectedItem(), Aspect.class);
+		
+		selectedPartNameField.requestFocus();
+	}
+	
+	@FXML
+	private void onClickButtonNewTopic(ActionEvent event) {
+		event.consume();
+		log.debug("Button clicked: new topic");
+		
+		prepareEditPaneForNewPart(listAspect.getSelectionModel().getSelectedItem(), Topic.class);
+		
+		selectedPartNameField.requestFocus();
+	}
+	
+	@FXML
+	private void onClickButtonNewAuthorPublisher(ActionEvent event) {
+		event.consume();
+		log.debug("Button clicked: new author/publisher");
+		
+		prepareEditPaneForNewPart(null, AuthorPublisher.class);
+	}
+	
+	
+	// Save
+	
 	@FXML
 	private void onClickButtonSave(ActionEvent event) {
 		log.debug("Button clicked: save");
 		event.consume();
 		
-		if (!savePartFromEditing()) {
-			// Don't reload anything if it didn't successfully save.
-			scheduleSaveStatusClear();
+		saveAndReloadPartList();
+	}
+	
+	@FXML
+	private void onEnterKeyPressedInEditFields(KeyEvent keyEvent) {
+		if (keyEvent.getCode().equals(KeyCode.ENTER)) {
+			log.debug("Key pressed in edit fields: save");
+			keyEvent.consume();
+			saveAndReloadPartList();
+		}
+	}
+	
+	
+	// Delete
+	
+	@FXML
+	private void onClickButtonDeleteSubject(ActionEvent event) {
+		log.debug("Button clicked: delete subject");
+		event.consume();
+		
+		@Nullable Subject selectedSubject = listSubject.getSelectionModel().getSelectedItem();
+		if (selectedSubject == null) {
 			return;
 		}
 		
-		String lastSavedPartClassName = lastSavedPart.getClass().getSimpleName();
-		log.debug("Last saved part class: {}", lastSavedPartClassName);
+		if (safelyDeletePart(selectedSubject)) {
+			loadSubjects();
+			loadDomains(listSubject.getSelectionModel().getSelectedItem());
+		}
+	}
+	
+	@FXML
+	private void onClickButtonDeleteDomain(ActionEvent event) {
+		log.debug("Button clicked: delete domain");
+		event.consume();
 		
-		switch (lastSavedPartClassName) {
-			case "Subject": {
-				log.debug("Decided to reload subjects");
-				loadSubjects();
-				break;
-			}
-			case "Domain": {
-				Subject subject = ((Domain) lastSavedPart).getSubject();
-				log.debug("Decided to reload domains with parent subject_id {}", subject.getId());
-				loadDomains(subject);
-				break;
-			}
-			default: break;
+		@Nullable Domain selectedDomain = listDomain.getSelectionModel().getSelectedItem();
+		if (selectedDomain == null) {
+			return;
 		}
 		
-		clearEditPane();
+		if (safelyDeletePart(selectedDomain)) {
+			loadDomains(null);
+		}
+	}
+	
+	@FXML
+	private void onClickButtonDeleteRoot(ActionEvent event) {
+		log.debug("Button clicked: delete root");
+		event.consume();
 		
-		// Clear labelSaveStatus after a few seconds
-		scheduleSaveStatusClear();
+		@Nullable Root selectedRoot = listRoot.getSelectionModel().getSelectedItem();
+		if (selectedRoot == null) {
+			return;
+		}
+		
+		if (safelyDeletePart(selectedRoot)) {
+			loadRoots();
+			loadAspects(null);
+		}
+	}
+	
+	@FXML
+	private void onClickButtonDeleteAspect(ActionEvent event) {
+		log.debug("Button clicked: delete aspect");
+		event.consume();
+		
+		@Nullable Aspect selectedAspect = listAspect.getSelectionModel().getSelectedItem();
+		if (selectedAspect == null) {
+			return;
+		}
+		
+		if (safelyDeletePart(selectedAspect)) {
+			loadAspects(listRoot.getSelectionModel().getSelectedItem());
+			loadTopics(null);
+		}
+	}
+	
+	@FXML
+	private void onClickButtonDeleteTopic(ActionEvent event) {
+		log.debug("Button clicked: delete topic");
+		event.consume();
+		
+		@Nullable Topic selectedTopic = listTopic.getSelectionModel().getSelectedItem();
+		if (selectedTopic == null) {
+			return;
+		}
+		
+		if (safelyDeletePart(selectedTopic)) {
+			loadTopics(listAspect.getSelectionModel().getSelectedItem());
+		}
+	}
+	
+	@FXML
+	private void onClickButtonDeleteAuthorPublisher(ActionEvent event) {
+		log.debug("Button clicked: delete author/publisher");
+		event.consume();
+		
+		@Nullable AuthorPublisher selectedAuthorPublisher = listAuthorPublisher.getSelectionModel().getSelectedItem();
+		if (selectedAuthorPublisher == null) {
+			return;
+		}
+		
+		if (safelyDeletePart(selectedAuthorPublisher)) {
+			loadAuthorPublishers();
+		}
 	}
 }
 
@@ -487,3 +1000,4 @@ class CallNumberPartCellFactory<T extends CallNumberPart> implements Callback<Li
 		};
 	}
 }
+

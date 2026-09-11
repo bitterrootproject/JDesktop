@@ -89,6 +89,12 @@ public abstract class CallNumberPart {
 		return this instanceof HasParentPart<?>;
 	}
 	
+	/// Does this part have child model? This does not determine whether the child collection actually *has* any
+	/// children.
+	public boolean hasChild() {
+		return this instanceof HasChildPart<?>;
+	}
+	
 	/// Nicely-formatted string, used in table and list views.
 	public String formatString() {
 		return String.format("%s - %s", this.number, this.name);
