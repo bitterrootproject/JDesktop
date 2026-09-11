@@ -22,6 +22,9 @@ public class GuiApplication extends Application {
 		System.setProperty("apple.awt.application.name", "Bitterroot JDesktop");
 		System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Bitterroot JDesktop");
 		
+		AlertHandler globalExceptionHandler = new AlertHandler();
+		Thread.setDefaultUncaughtExceptionHandler(globalExceptionHandler);
+		
 		primaryStage.setTitle("Bitterroot Project JDesktop");
 		
 		FXMLLoader fxmlLoader = new FXMLLoader();
@@ -35,5 +38,13 @@ public class GuiApplication extends Application {
 		log.info("Loaded scene: InventoryManagerView");
 		
 		primaryStage.show();
+	}
+}
+
+
+@Slf4j
+class AlertHandler implements Thread.UncaughtExceptionHandler {
+	public void uncaughtException(Thread thread, Throwable e) {
+		GuiUtils.displayJavaExceptionAlert(e);
 	}
 }
