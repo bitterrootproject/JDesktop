@@ -84,6 +84,7 @@ dependencies {
     implementation("org.slf4j:slf4j-simple:2.0.18")
 
     implementation("org.apache.commons:commons-lang3:3.20.0")
+    implementation("org.jetbrains:annotations:26.1.0")
 //    implementation("org.slf4j:slf4j-nop:2.0.18")
 //    implementation("org.apache.logging.log4j:log4j-api:2.26.1")
 //    implementation("org.apache.logging.log4j:log4j-slf4j2-impl:2.26.1")

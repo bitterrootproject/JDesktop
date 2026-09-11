@@ -15,6 +15,7 @@ module org.bitterrootproject.jdesktop {
 	requires java.desktop;
 	requires org.xerial.sqlitejdbc;
 	requires org.apache.commons.lang3;
+	requires org.jetbrains.annotations;
 	
 	opens org.bitterrootproject.jdesktop to javafx.fxml;
 	opens org.bitterrootproject.jdesktop.gui to javafx.fxml;
