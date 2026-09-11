@@ -2,9 +2,7 @@ package org.bitterrootproject.jdesktop.models;
 
 import com.j256.ormlite.table.DatabaseTable;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.*;
 
 
 /**
@@ -13,7 +11,8 @@ import lombok.EqualsAndHashCode;
  * <b>Parent part:</b> none
  */
 
-@EqualsAndHashCode(callSuper = true)
 @DatabaseTable(tableName = "authors_publishers")
+
+@Getter @Setter
 @AllArgsConstructor
-public @Data class AuthorPublisher extends CallNumberPart {}
+public class AuthorPublisher extends CallNumberPart {}

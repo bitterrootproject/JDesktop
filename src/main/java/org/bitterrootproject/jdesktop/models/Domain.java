@@ -3,10 +3,7 @@ package org.bitterrootproject.jdesktop.models;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 
 /**
@@ -15,11 +12,12 @@ import lombok.NoArgsConstructor;
  * <b>Parent part:</b> {@link Subject}
  */
 
-@EqualsAndHashCode(callSuper = true)
 @DatabaseTable(tableName = "domains")
-@NoArgsConstructor
+
+@Getter @Setter
 @AllArgsConstructor
-public @Data class Domain extends CallNumberPart implements HasParentPart<Subject> {
+@NoArgsConstructor
+public class Domain extends CallNumberPart implements HasParentPart<Subject> {
 	
 	@DatabaseField(
 			foreign = true,
@@ -28,7 +26,8 @@ public @Data class Domain extends CallNumberPart implements HasParentPart<Subjec
 	)
 	private Subject subject;
 	
-	public static String FIELD_NAME_SUBJECT = "subject";
+	public static String FIELD_NAME_SUBJECT = "subject_id";
+	@SuppressWarnings("unused")
 	public static String FIELD_NAME_PARENT = Domain.FIELD_NAME_SUBJECT;
 	
 	public Subject getParent() { return subject; }

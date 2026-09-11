@@ -3,10 +3,7 @@ package org.bitterrootproject.jdesktop.models;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 
 /**
@@ -15,11 +12,12 @@ import lombok.NoArgsConstructor;
  * <b>Parent part:</b> {@link Aspect}
  */
 
-@EqualsAndHashCode(callSuper = true)
 @DatabaseTable(tableName = "topics")
-@NoArgsConstructor
+
+@Getter @Setter
 @AllArgsConstructor
-public @Data class Topic extends CallNumberPart implements HasParentPart<Aspect> {
+@NoArgsConstructor
+public class Topic extends CallNumberPart implements HasParentPart<Aspect> {
 	
 	@DatabaseField(
 			foreign = true,
@@ -29,6 +27,7 @@ public @Data class Topic extends CallNumberPart implements HasParentPart<Aspect>
 	private Aspect aspect;
 	
 	public static String FIELD_NAME_ASPECT = "aspect";
+	@SuppressWarnings("unused")
 	public static String FIELD_NAME_PARENT = Topic.FIELD_NAME_ASPECT;
 	
 	public Aspect getParent() { return aspect; }

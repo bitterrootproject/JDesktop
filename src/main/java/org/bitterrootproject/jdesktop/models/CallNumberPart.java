@@ -50,7 +50,8 @@ import lombok.Setter;
  *     </li>
  *     <li>
  *         Two public static Strings, one named {@code FIELD_NAME_{parent_name}} and one named {@code FIELD_NAME_PARENT},
- *         with the latter's value being equal to the former's.
+ *         with the latter's value being equal to the former's. This is the name of the id field in the related part,
+ *         e.g. {@code subject_id}.
  *     </li>
  *     <li>
  *         The child call number part must completely implement the {@link HasParentPart} interface and set the generic
@@ -64,22 +65,95 @@ import lombok.Setter;
  */
 
 public abstract class CallNumberPart {
+
 	@Getter @Setter
 	@DatabaseField(generatedId = true)
 	protected long id;
+	@SuppressWarnings("unused")
 	public static String FIELD_NAME_ID = "id";
 	
 	@Getter @Setter
 	@DatabaseField(canBeNull = false)
 	protected String number;
+	@SuppressWarnings("unused")
 	public static String FIELD_NAME_NUMBER = "number";
 	
 	@Getter @Setter
 	@DatabaseField(canBeNull = false)
 	protected String name;
+	@SuppressWarnings("unused")
 	public static String FIELD_NAME_NAME = "name";
 	
-	public String toString() {
+	/// Does this part have a parent field?
+	public boolean hasParent() {
+		return this instanceof HasParentPart<?>;
+	}
+	
+	/// Nicely-formatted string, used in table and list views.
+	public String formatString() {
 		return String.format("%s - %s", this.number, this.name);
+	}
+	
+	/// Standard string, used primarily for logging.
+	public final String toString() {
+		if (hasParent()) {
+			var parent = ((HasParentPart<?>) this).getParent();
+			Long parentId = parent.getId();
+			String parentIdField = String.format(
+					"%s_%s",
+					parent.getClass().getSimpleName().toLowerCase(),
+					"id"
+			);
+			
+			return String.format(
+					"%s(id=%d, number='%s', name='%s', %s=%d)",
+					this.getClass().getSimpleName(),
+					getId(),
+					getNumber(),
+					getName(),
+					parentIdField,
+					parentId
+			);
+		} else {
+			return String.format(
+					"%s(id=%d, number='%s', name='%s')",
+					this.getClass().getSimpleName(),
+					getId(),
+					getNumber(),
+					getName()
+			);
+		}
+	}
+	
+	
+	@Override
+	public final boolean equals(Object o) {
+		if (o == null || getClass() != o.getClass()) {
+			return false;
+		}
+		
+		CallNumberPart that = (CallNumberPart) o;
+		
+		if (hasParent() && that.hasParent()) {
+			var thisParent = ((HasParentPart<?>) this).getParent();
+			var otherParent = ((HasParentPart<?>) o).getParent();
+			
+			return getId() == that.getId()
+					&& getNumber().equals(that.getNumber())
+					&& getName().equals(that.getName())
+					&& thisParent.equals(otherParent);
+		} else {
+			return getId() == that.getId()
+					&& getNumber().equals(that.getNumber())
+					&& getName().equals(that.getName());
+		}
+	}
+	
+	@Override
+	public final int hashCode() {
+		int result = Long.hashCode(getId());
+		result = 31 * result + getNumber().hashCode();
+		result = 31 * result + getName().hashCode();
+		return result;
 	}
 }
