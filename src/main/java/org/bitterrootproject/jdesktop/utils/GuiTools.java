@@ -1,19 +1,20 @@
-package org.bitterrootproject.jdesktop;
+package org.bitterrootproject.jdesktop.utils;
 
+import javafx.application.Platform;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
 
-@Slf4j
-public class GuiUtils {
+@Log4j2
+public class GuiTools {
 	/**
 	 * Create and display a new alert designed to display and handle exceptions, caught or otherwise, with a custom
 	 * message string.
@@ -22,6 +23,16 @@ public class GuiUtils {
 	 */
 	public static void displayJavaExceptionAlert(@Nullable String message, Throwable exception) {
 		log.info("Caught exception, displaying as JavaFX Alert", exception);
+		
+		if (!Platform.isFxApplicationThread()) {
+			Platform.runLater(() -> displayJavaExceptionAlert(message, exception));
+			return;
+		}
+		
+		displayJavaExceptionAlertOnFxThread(message, exception);
+	}
+	
+	private static void displayJavaExceptionAlertOnFxThread(@Nullable String message, Throwable exception) {
 		
 		Alert alert = new Alert(Alert.AlertType.ERROR);
 		alert.setTitle("Exception caught");

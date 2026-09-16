@@ -5,14 +5,18 @@ plugins {
     application
     id("org.javamodularity.moduleplugin") version "2.0.1"
     id("org.openjfx.javafxplugin") version "0.1.0"
-//    id("org.beryx.jlink") version "2.25.0"
     id("org.beryx.jlink") version "4.1.1"
     id("io.freefair.lombok") version "9.5.0"  // Data classes
-//    id("de.infolektuell.jpackage") version "0.4.1"
 }
 
 group = "org.bitterrootproject"
 version = "1.0.0"
+
+
+var globalAppName = "JDesktop"
+var globalMainModule = "org.bitterrootproject.jdesktop"
+var globalMainClassFQ = "org.bitterrootproject.jdesktop.AppMain"
+
 
 repositories {
     mavenCentral()
@@ -35,6 +39,21 @@ val junitVersion = "5.10.2"
 //    }
 
 
+val osName = System.getProperty("os.name").lowercase()
+
+enum class OsType {
+    WINDOWS, LINUX, MAC, UNIX, OTHER
+}
+
+val osType: OsType = when {
+    "windows" in osName -> OsType.WINDOWS
+    "linux" in osName -> OsType.LINUX
+    "mac" in osName -> OsType.MAC
+    listOf("unix", "sunos", "solaris", "bsd").any { it in osName } -> OsType.UNIX
+    else -> OsType.OTHER
+}
+
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
@@ -49,12 +68,9 @@ tasks.withType<JavaCompile> {
 }
 
 application {
-    applicationName = "JDesktop"
-//    mainClass = "org.example.App"
-    mainModule = "org.bitterrootproject.jdesktop"
-//    mainClass.set("org.bitterrootproject.jdesktop.HelloApplication")
-//    mainClass.set("org.bitterrootproject.jdesktop.DatabaseManager")
-    mainClass = if (project.hasProperty("mainClass")) project.property("mainClass").toString() else "org.bitterrootproject.jdesktop.GuiApplication"
+    applicationName = globalAppName
+    mainModule = globalMainModule
+    mainClass = globalMainClassFQ
 }
 
 javafx {
@@ -80,9 +96,21 @@ dependencies {
     implementation("org.xerial:sqlite-jdbc:3.53.4.0")
 
     // Logging
-    compileOnly("org.slf4j:slf4j-api:2.0.18")
-    runtimeOnly("org.slf4j:slf4j-simple:2.0.18")
+    var log4j2Version = "2.26.1"
+    implementation(platform("org.apache.logging.log4j:log4j-bom:${log4j2Version}"))
+    implementation("org.apache.logging.log4j:log4j-api:${log4j2Version}")
 
+    implementation("org.apache.logging.log4j:log4j-core")
+    runtimeOnly("org.apache.logging.log4j:log4j-layout-template-json")
+
+    // SLF4J-to-Log4j2 wrapper (if needed)
+    // runtimeOnly("org.apache.logging.log4j:log4j-slf4j2-impl")
+
+    // Used to get the right folders on each OS
+    implementation("net.harawata:appdirs:1.5.0")
+
+
+    // Extra helpful stuff
     implementation("org.apache.commons:commons-lang3:3.20.0")
     implementation("org.jetbrains:annotations:26.1.0")
 }
@@ -96,20 +124,41 @@ jlink {
     options.set(listOf("--strip-debug", "--compress", "2", "--no-header-files", "--no-man-pages"))
 
     // jlink and jpackage need some extra help to detect slf4j
-    forceMerge("slf4j")
+    forceMerge("log4j-api")
+
+    // Need to explicitly add these so jlink works
+    mergedModule {
+        requires("java.logging")
+        requires("java.sql")
+        requires("java.desktop")
+        requires("java.datatransfer")
+        requires("java.sql.rowset")
+        provides("org.apache.logging.log4j.util.PropertySource")
+            .with(
+                "org.apache.logging.log4j.util.EnvironmentPropertySource",
+                "org.apache.logging.log4j.util.SystemPropertiesPropertySource"
+            )
+
+        uses("org.apache.logging.log4j.spi.Provider")
+        uses("org.apache.logging.log4j.util.PropertySource")
+        uses("java.sql.DriverManager")
+    }
 
     launcher {
-        name = "JDesktop"
+        name = globalAppName
     }
 
     jpackage {
-        imageName = "JDesktop"
+        imageName = globalAppName
 //        imageOptions = [
 //            "--icon", "src/main/resources/org/bitterrootproject/jdesktop/icon.icns",
 ////            "--name", "JDesktop"
 //        ]
-        mainClass = "org.bitterrootproject.jdesktop.GuiApplication"
-        icon = "src/main/resources/org/bitterrootproject/jdesktop/icon.icns"
+        mainClass = globalMainClassFQ
+        icon = when {
+            osType == OsType.MAC -> "src/main/resources/org/bitterrootproject/jdesktop/mac-icon.icns"
+            else -> ""
+        }
 //        description = "Bitterroot Project JDesktop"
 //        vendor = "Bitterroot Project"
     }

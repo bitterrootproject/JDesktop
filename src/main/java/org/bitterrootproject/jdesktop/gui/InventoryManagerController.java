@@ -19,11 +19,11 @@ import javafx.animation.PauseTransition;
 import javafx.util.Duration;
 
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 
 import org.apache.commons.lang3.StringUtils;
 import org.bitterrootproject.jdesktop.DatabaseManager;
-import org.bitterrootproject.jdesktop.GuiUtils;
+import org.bitterrootproject.jdesktop.utils.GuiTools;
 import org.bitterrootproject.jdesktop.models.*;
 
 import javafx.scene.input.MouseEvent;
@@ -40,7 +40,7 @@ import java.util.ResourceBundle;
 /**
  * The JavaFX controller for the call number part inventory manager.
  */
-@Slf4j
+@Log4j2
 public class InventoryManagerController implements Initializable {
 	public static final URL RESOURCE = InventoryManagerController.class.getResource("InventoryManagerView.fxml");
 	
@@ -495,7 +495,7 @@ public class InventoryManagerController implements Initializable {
 						
 					} catch (SQLException e) {
 						log.error("Failed to delete the parent: {}", selectedPart, e);
-						GuiUtils.displayJavaExceptionAlert("Failed to delete the parent object.", e);
+						GuiTools.displayJavaExceptionAlert("Failed to delete the parent object.", e);
 						return false;
 					}
 					
@@ -582,7 +582,7 @@ public class InventoryManagerController implements Initializable {
 					
 				} catch (SQLException e) {
 					log.error("Failed to delete (with-prompt) the parent: {}", selectedPart, e);
-					GuiUtils.displayJavaExceptionAlert("Failed to delete the parent object.", e);
+					GuiTools.displayJavaExceptionAlert("Failed to delete the parent object.", e);
 					return false;
 				}
 				
@@ -609,7 +609,7 @@ public class InventoryManagerController implements Initializable {
 				return true;
 			} catch (SQLException e) {
 				log.error("Failed to delete (no-prompt) the parent: {}", selectedPart, e);
-				GuiUtils.displayJavaExceptionAlert("Failed to delete the parent object.", e);
+				GuiTools.displayJavaExceptionAlert("Failed to delete the parent object.", e);
 				return false;
 			}
 		}

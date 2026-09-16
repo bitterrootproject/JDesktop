@@ -4,12 +4,11 @@ import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.table.TableUtils;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.bitterrootproject.jdesktop.models.*;
+import org.bitterrootproject.jdesktop.utils.EnvTools;
+import org.bitterrootproject.jdesktop.utils.FileManager;
 
-import java.io.IOException;
-import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
 
@@ -17,11 +16,9 @@ import java.sql.SQLException;
 /**
  * Database manager for the SQLite database used by Bitterroot JDesktop.
  */
-@Slf4j
+@Log4j2
 public final class DatabaseManager {
 	// private static final String DATABASE_DRIVER = "org.sqlite.JDBC";
-	
-	private static final boolean USE_LOCAL_DB = true;
 	
 	/**
 	 * Get the String path to the database file.
@@ -30,28 +27,11 @@ public final class DatabaseManager {
 	 */
 	private static String getDatabaseUrl(boolean local) {
 		if (local) {
-			return "jdbc:sqlite:db.sqlite3";
+			return "jdbc:sqlite:dev-data/db.sqlite3";
 		} else {
 			String prefix = "jdbc:sqlite:";
-			Path path = FileManager.getAppDataDirectory().resolve("db.sqlite3");
-	
-			try {
-				if (!path.getParent().toFile().exists())
-					Files.createDirectories(path.getParent());
-			} catch (IOException e) {
-				log.error("Failed to create parent directories to the sqlite file", e);
-			}
-	
-	
-			if (!path.toFile().exists()) {
-				try {
-					Files.createFile(path);
-				} catch (FileAlreadyExistsException ignored) {
-				} catch (IOException e) {
-					log.error("Failed to create new SQLite database file", e);
-				}
-			}
-	
+			Path path = FileManager.USER_DATA.resolve("db.sqlite3");
+			FileManager.createFileIfNotExists(path, true);
 			return prefix + path;
 		}
 	}
@@ -135,9 +115,12 @@ public final class DatabaseManager {
 	 * @throws SQLException If a connection could not be made
 	 */
 	private static JdbcConnectionSource openConnection() throws SQLException {
-		// try {
-		boolean useLocalLogging = USE_LOCAL_DB;
-		return new JdbcConnectionSource(getDatabaseUrl(useLocalLogging));
+		boolean useLocalDb = EnvTools.getBoolean("DEV", false);
+		
+		var dbUrl = getDatabaseUrl(useLocalDb);
+		log.info("Using database: {}", dbUrl);
+		
+		return new JdbcConnectionSource(dbUrl);
 		// } catch (IOException e) {
 		// 	log.error("Failed to create or get database file.", e);
 		// 	System.exit(1);
