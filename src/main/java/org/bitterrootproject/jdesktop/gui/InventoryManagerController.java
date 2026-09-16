@@ -4,6 +4,10 @@ package org.bitterrootproject.jdesktop.gui;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.stmt.PreparedQuery;
 import com.j256.ormlite.stmt.QueryBuilder;
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.ObjectBinding;
+import javafx.beans.property.ListProperty;
+import javafx.beans.property.SimpleListProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -34,8 +38,10 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.sql.SQLException;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.stream.Collectors;
 
 /**
  * The JavaFX controller for the call number part inventory manager.
@@ -50,42 +56,72 @@ public class InventoryManagerController implements Initializable {
 	
 	// Filter fields
 	@FXML
-	private TextField filterSubject;
+	private TextField textFieldFilterSubject;
 	
 	@FXML
-	private TextField filterDomain;
+	private TextField textFieldFilterDomain;
 	
 	@FXML
-	private TextField filterRoot;
+	private TextField textFieldFilterRoot;
 	
 	@FXML
-	private TextField filterAspect;
+	private TextField textFieldFilterAspect;
 	
 	@FXML
-	private TextField filterTopic;
+	private TextField textFieldFilterTopic;
 	
 	@FXML
-	private TextField filterAuthorPublisher;
+	private TextField textFieldFilterAuthorPublisher;
+	
+	private <T extends CallNumberPart> ObjectBinding<ObservableList<T>> createFilterBinding(TextField filterField, ListProperty<T> objects) {
+		return Bindings.createObjectBinding(
+				() -> {
+					String text = filterField.getText().strip().toLowerCase(Locale.ROOT);
+					if (text.isBlank()) {
+						return FXCollections.observableList(objects);
+					} else {
+						return FXCollections.observableList(
+								objects.stream()
+										.filter(o -> o.getName().contains(text) || o.getNumber().contains(text))
+										.collect(Collectors.toList())
+						);
+					}
+				},
+				filterField.textProperty(), objects
+		);
+	}
 	
 	
 	// List views
 	@FXML
 	private ListView<Subject> listSubject;
+	private final ListProperty<Subject> filteredSubjects = new SimpleListProperty<>();
+	private final ListProperty<Subject> allSubjects = new SimpleListProperty<>();
 	
 	@FXML
 	private ListView<Domain> listDomain;
+	private final ListProperty<Domain> filteredDomains = new SimpleListProperty<>();
+	private final ListProperty<Domain> allDomains = new SimpleListProperty<>();
 	
 	@FXML
 	private ListView<Root> listRoot;
+	private final ListProperty<Root> filteredRoots = new SimpleListProperty<>();
+	private final ListProperty<Root> allRoots = new SimpleListProperty<>();
 	
 	@FXML
 	private ListView<Aspect> listAspect;
+	private final ListProperty<Aspect> filteredAspects = new SimpleListProperty<>();
+	private final ListProperty<Aspect> allAspects = new SimpleListProperty<>();
 	
 	@FXML
 	private ListView<Topic> listTopic;
+	private final ListProperty<Topic> filteredTopics = new SimpleListProperty<>();
+	private final ListProperty<Topic> allTopics = new SimpleListProperty<>();
 	
 	@FXML
 	private ListView<AuthorPublisher> listAuthorPublisher;
+	private final ListProperty<AuthorPublisher> filteredAuthorPublishers = new SimpleListProperty<>();
+	private final ListProperty<AuthorPublisher> allAuthorPublishers = new SimpleListProperty<>();
 	
 	
 	
@@ -142,7 +178,24 @@ public class InventoryManagerController implements Initializable {
 		labelSaveStatus.setText("");
 
 		this.dbManager = DatabaseManager.getInstance();
+		
+		// Set the collections to monitor
+		listSubject.setItems(filteredSubjects);
+		listDomain.setItems(filteredDomains);
+		listRoot.setItems(filteredRoots);
+		listAspect.setItems(filteredAspects);
+		listTopic.setItems(filteredTopics);
+		listAuthorPublisher.setItems(filteredAuthorPublishers);
 
+		// Bind the filter field to the collections
+		filteredSubjects.bind(createFilterBinding(textFieldFilterSubject, allSubjects));
+		filteredDomains.bind(createFilterBinding(textFieldFilterDomain, allDomains));
+		filteredRoots.bind(createFilterBinding(textFieldFilterRoot, allRoots));
+		filteredAspects.bind(createFilterBinding(textFieldFilterAspect, allAspects));
+		filteredTopics.bind(createFilterBinding(textFieldFilterTopic, allTopics));
+		filteredAuthorPublishers.bind(createFilterBinding(textFieldFilterAuthorPublisher, allAuthorPublishers));
+		
+		
 		loadSubjects();
 		loadRoots();
 		loadAuthorPublishers();
@@ -234,7 +287,7 @@ public class InventoryManagerController implements Initializable {
 			return false;
 		}
 		
-		// If we're creating a new part, we have some extra stuff to do, since we have to create a new part using
+		// If we're creating a new part, we have some extra stuff to do, since we have to: create a new part using
 		// reflection, check if it has a parent (and so some casting), then do some more casting to save it to its
 		// respective DAO.
 		if (creatingNewPart) {
@@ -395,8 +448,8 @@ public class InventoryManagerController implements Initializable {
 	 * <ul>
 	 *     <li>
 	 *          If the part has a child model (is the parent of another model), and there
-	 * 	        is at least one child part which references it, a warning will be displayed informing the user as such,
-	 * 	        though they can continue anyway, if so desired. If they choose to, the child parts will be deleted
+	 * 	        is at least one child part which references it, a warning will be displayed informing the user as such.
+	 * 	        The user can opt to continue anyway, if so desired. If they choose to, the child parts will be deleted
 	 * 	        before deleting the parent part.
 	 *     </li>
 	 *     <li>If the part is not a parent, it is simply deleted.</li>
@@ -429,6 +482,7 @@ public class InventoryManagerController implements Initializable {
 						c.hasChild() && ((HasChildPart<?>) c).countChildren() > 0)
 				)) {
 					log.warn("User tried to delete parent part '{}' that has grandchildren, which is not allowed.", selectedPart.formatString());
+					// noinspection ExtractMethodRecommender
 					Alert doubleRecursiveChildrenAlert = new Alert(Alert.AlertType.ERROR);
 					doubleRecursiveChildrenAlert.setHeaderText(null);
 					doubleRecursiveChildrenAlert.setTitle("Deletion error");
@@ -632,27 +686,29 @@ public class InventoryManagerController implements Initializable {
 	private void loadSubjects() {
 		try {
 			var subjects = dbManager.subjects.queryForAll();
-			listSubject.setItems(FXCollections.observableArrayList(subjects));
+			allSubjects.set(FXCollections.observableList(subjects));
 		} catch (SQLException e) {
 			log.error("Failed to get subjects", e);
-			listSubject.setItems(null);
+			// listSubject.setItems(null);
+			allSubjects.clear();
 		}
 	}
 	
 	private void loadDomains(@Nullable Subject parentSubject) {
 		if (parentSubject == null) {
-			listDomain.setItems(null);
+			allDomains.clear();
 		} else {
 			try {
 				QueryBuilder<Domain, Long> queryBuilder = dbManager.domains.queryBuilder();
 				queryBuilder.where().eq(Domain.FIELD_NAME_SUBJECT, parentSubject.getId());
 				PreparedQuery<Domain> preparedQuery = queryBuilder.prepare();
-				ObservableList<Domain> items = FXCollections.observableArrayList(dbManager.domains.query(preparedQuery));
-				listDomain.setItems(items);
+				ObservableList<Domain> items = FXCollections.observableList(dbManager.domains.query(preparedQuery));
+				allDomains.set(items);
 				
 			} catch (SQLException e) {
 				log.error("Failed to query domains with parent subject id '{}'", parentSubject.getId(), e);
-				listDomain.setItems(null);
+				// listDomain.setItems(null);
+				allDomains.clear();
 			}
 		}
 	}
@@ -660,44 +716,46 @@ public class InventoryManagerController implements Initializable {
 	private void loadRoots() {
 		try {
 			var roots = dbManager.roots.queryForAll();
-			listRoot.setItems(FXCollections.observableArrayList(roots));
+			allRoots.set(FXCollections.observableList(roots));
+
 		} catch (SQLException e) {
 			log.error("Failed to get roots", e);
-			listRoot.setItems(null);
+			allRoots.clear();
 		}
 	}
 	
 	private void loadAspects(@Nullable Root parentRoot) {
 		if (parentRoot == null) {
-			listAspect.setItems(null);
+			allAspects.clear();
 		} else {
 			try {
 				QueryBuilder<Aspect, Long> queryBuilder = dbManager.aspects.queryBuilder();
 				queryBuilder.where().eq(Aspect.FIELD_NAME_ROOT, parentRoot.getId());
 				PreparedQuery<Aspect> preparedQuery = queryBuilder.prepare();
-				ObservableList<Aspect> items = FXCollections.observableArrayList(
-						dbManager.aspects.query(preparedQuery));
-				listAspect.setItems(items);
+				ObservableList<Aspect> items = FXCollections.observableList(dbManager.aspects.query(preparedQuery));
+				allAspects.set(items);
+
 			} catch (SQLException e) {
 				log.error("Failed to query aspects with parent root id '{}'", parentRoot.getId(), e);
-				listAspect.setItems(null);
+				allAspects.clear();
 			}
 		}
 	}
 	
 	private void loadTopics(@Nullable Aspect parentAspect) {
 		if (parentAspect == null) {
-			listTopic.setItems(null);
+			allTopics.clear();
 		} else {
 			try {
 				QueryBuilder<Topic, Long> queryBuilder = dbManager.topics.queryBuilder();
 				queryBuilder.where().eq(Topic.FIELD_NAME_ASPECT, parentAspect.getId());
 				PreparedQuery<Topic> preparedQuery = queryBuilder.prepare();
-				ObservableList<Topic> items = FXCollections.observableArrayList(dbManager.topics.query(preparedQuery));
-				listTopic.setItems(items);
+				ObservableList<Topic> items = FXCollections.observableList(dbManager.topics.query(preparedQuery));
+				allTopics.set(items);
+
 			} catch (SQLException e) {
 				log.error("Failed to query topics with parent aspect id '{}'", parentAspect.getId(), e);
-				listTopic.setItems(null);
+				allTopics.clear();
 			}
 		}
 	}
@@ -705,10 +763,10 @@ public class InventoryManagerController implements Initializable {
 	private void loadAuthorPublishers() {
 		try {
 			var authorPublishers = dbManager.authorPublishers.queryForAll();
-			listAuthorPublisher.setItems(FXCollections.observableArrayList(authorPublishers));
+			allAuthorPublishers.set(FXCollections.observableList(authorPublishers));
 		} catch (SQLException e) {
 			log.error("Failed to get authors/publishers", e);
-			listAuthorPublisher.setItems(null);
+			allAuthorPublishers.clear();
 		}
 	}
 	

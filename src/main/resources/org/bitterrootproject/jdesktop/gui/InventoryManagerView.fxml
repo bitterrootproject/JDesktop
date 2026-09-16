@@ -19,7 +19,7 @@
 
 <!--suppress JavaFxDefaultTag -->
 
-<AnchorPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.bitterrootproject.jdesktop.gui.InventoryManagerController">
+<AnchorPane xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.bitterrootproject.jdesktop.gui.InventoryManagerController">
    <VBox AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
       <children>
          <Label text="Inventory of Call Number Parts">
@@ -40,7 +40,7 @@
                               <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                            </VBox.margin>
                         </Label>
-                     <TextField fx:id="filterSubject" promptText="Filter..." GridPane.columnIndex="0">
+                     <TextField fx:id="textFieldFilterSubject" promptText="Filter...">
                            <VBox.margin>
                               <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                            </VBox.margin>
@@ -67,7 +67,7 @@
                               <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                            </VBox.margin>
                         </Label>
-                     <TextField fx:id="filterDomain" promptText="Filter..." GridPane.columnIndex="1">
+                     <TextField fx:id="textFieldFilterDomain" promptText="Filter..." GridPane.columnIndex="1">
                            <VBox.margin>
                               <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                            </VBox.margin>
@@ -94,7 +94,7 @@
                               <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                            </VBox.margin>
                         </Label>
-                     <TextField fx:id="filterRoot" promptText="Filter..." GridPane.columnIndex="2">
+                     <TextField fx:id="textFieldFilterRoot" promptText="Filter..." GridPane.columnIndex="2">
                            <VBox.margin>
                               <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                            </VBox.margin>
@@ -121,7 +121,7 @@
                               <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                            </VBox.margin>
                         </Label>
-                     <TextField fx:id="filterAspect" promptText="Filter..." GridPane.columnIndex="3">
+                     <TextField fx:id="textFieldFilterAspect" promptText="Filter..." GridPane.columnIndex="3">
                            <VBox.margin>
                               <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                            </VBox.margin>
@@ -148,7 +148,7 @@
                               <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                            </VBox.margin>
                         </Label>
-                     <TextField fx:id="filterTopic" promptText="Filter..." GridPane.columnIndex="4">
+                     <TextField fx:id="textFieldFilterTopic" promptText="Filter..." GridPane.columnIndex="4">
                            <VBox.margin>
                               <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                            </VBox.margin>
@@ -175,7 +175,7 @@
                               <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                            </VBox.margin>
                         </Label>
-                     <TextField fx:id="filterAuthorPublisher" promptText="Filter..." GridPane.columnIndex="5">
+                     <TextField fx:id="textFieldFilterAuthorPublisher" promptText="Filter..." GridPane.columnIndex="5">
                            <VBox.margin>
                               <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                            </VBox.margin>
