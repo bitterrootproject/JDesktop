@@ -30,7 +30,7 @@ public class Topic extends CallNumberPart implements HasParentPart<Aspect> {
 	@SuppressWarnings("unused")
 	public static String FIELD_NAME_PARENT = Topic.FIELD_NAME_ASPECT;
 	
-	public Aspect getParent() { return aspect; }
-	public void setParent(Aspect aspect) { setAspect(aspect); }
-	
+	public @NonNull Aspect getParent() { return aspect; }
+	public void setParent(@NonNull Aspect aspect) { setAspect(aspect); }
+	public Class<Aspect> getParentClass() { return Aspect.class; }
 }

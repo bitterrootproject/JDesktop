@@ -4,6 +4,11 @@ import com.j256.ormlite.field.DatabaseField;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.extern.log4j.Log4j2;
+import org.w3c.dom.Document;
+
+import org.w3c.dom.Element;
+import java.util.Locale;
 
 
 /**
@@ -64,11 +69,12 @@ import lombok.Setter;
  *
  */
 
+@Log4j2
 public abstract class CallNumberPart {
 
 	@Getter @Setter
 	@DatabaseField(generatedId = true)
-	protected long id;
+	protected Long id;
 	@SuppressWarnings("unused")
 	public static String FIELD_NAME_ID = "id";
 	
@@ -95,9 +101,68 @@ public abstract class CallNumberPart {
 		return this instanceof HasChildPart<?>;
 	}
 	
+	public Element serialize(Document document) {
+		String classSimpleName = this.getClass().getSimpleName();
+		org.w3c.dom.Element elPart = document.createElement(classSimpleName);
+		elPart.setAttribute("id", this.getId().toString());
+		
+		org.w3c.dom.Element elNumber = document.createElement("number");
+		elNumber.setTextContent(this.getNumber());
+		elPart.appendChild(elNumber);
+		
+		org.w3c.dom.Element elName = document.createElement("name");
+		elName.setTextContent(this.getName());
+		elPart.appendChild(elName);
+		
+		if (this.hasParent()) {
+			CallNumberPart parent = ((HasParentPart<?>) this).getParent();
+			String parentClassName = ((HasParentPart<?>) this).getParentClass().getSimpleName();
+			
+			org.w3c.dom.Element elParent = document.createElement(parentClassName.toLowerCase(Locale.ROOT));
+			elParent.setAttribute("ref", parent.getId().toString());
+			elPart.appendChild(elParent);
+		}
+		
+		log.debug("Serialized {}", this.toString());
+		return elPart;
+	}
+	
 	/// Nicely-formatted string, used in table and list views.
 	public String formatString() {
 		return String.format("%s - %s", this.number, this.name);
+	}
+	
+	public void updateFrom(CallNumberPart other) {
+		if (!this.getClass().equals(other.getClass())) {
+			throw new IllegalArgumentException(other.getClass().getName());
+		}
+		
+		// assert this.getClass().equals(part.getClass())
+		
+		var thisNumber = this.getNumber();
+		var thisName = this.getName();
+		var otherNumber = other.getNumber();
+		var otherName = other.getName();
+		
+		if (!thisNumber.equals(otherNumber)) {
+			this.setNumber(otherNumber);
+			log.debug("Updated number: {} -> {}", thisNumber, otherNumber);
+		}
+		if (!thisName.equals(otherName)) {
+			this.setName(otherName);
+			log.debug("Updated number: {} -> {}", thisName, otherName);
+		}
+		
+		if (this.hasParent() && other.hasParent()) {
+			var thisParent = ((HasParentPart<?>) this).getParent();
+			var otherParent = ((HasParentPart<?>) other).getParent();
+			
+			if (!thisParent.equals(otherParent)) {
+				var parent = ((HasParentPart<?>) other).getParent();
+				// Call the method accepting a raw, untyped parent, and let it handle type enforcement.
+				((HasParentPart<?>) this).setParentCast(parent);
+			}
+		}
 	}
 	
 	/// Standard string, used primarily for logging.
@@ -144,12 +209,12 @@ public abstract class CallNumberPart {
 			var thisParent = ((HasParentPart<?>) this).getParent();
 			var otherParent = ((HasParentPart<?>) o).getParent();
 			
-			return getId() == that.getId()
+			return getId().equals(that.getId())
 					&& getNumber().equals(that.getNumber())
 					&& getName().equals(that.getName())
 					&& thisParent.equals(otherParent);
 		} else {
-			return getId() == that.getId()
+			return getId().equals(that.getId())
 					&& getNumber().equals(that.getNumber())
 					&& getName().equals(that.getName());
 		}

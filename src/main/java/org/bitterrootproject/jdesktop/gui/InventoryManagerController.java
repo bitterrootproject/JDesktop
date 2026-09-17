@@ -32,7 +32,8 @@ import org.bitterrootproject.jdesktop.models.*;
 
 import javafx.scene.input.MouseEvent;
 
-import org.jetbrains.annotations.*;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -217,7 +218,7 @@ public class InventoryManagerController implements Initializable {
 	 * Select this part for editing, and display its child parts. Also sets {@link #selectedPart} to the specified {@code part}.
 	 * @param part The part object to bring into the editor pane
 	 */
-	private void selectPartForEditing(@NotNull CallNumberPart part) {
+	private void selectPartForEditing(@NonNull CallNumberPart part) {
 		this.creatingNewPart = false;
 		this.selectedPart = part;
 		labelEditCallNumberPart.setText(String.format("Edit %s", part.getClass().getSimpleName()));
@@ -249,7 +250,7 @@ public class InventoryManagerController implements Initializable {
 	 * @param parentPart The parent object of the part-to-be.
 	 * @param childPartClass The class of the child part, i.e. the one being created in the edit pane
 	 */
-	private void prepareEditPaneForNewPart(@Nullable CallNumberPart parentPart, @NotNull Class<? extends CallNumberPart> childPartClass) {
+	private void prepareEditPaneForNewPart(@Nullable CallNumberPart parentPart, @NonNull Class<? extends CallNumberPart> childPartClass) {
 		creatingNewPart = true;
 		labelEditCallNumberPart.setText(String.format("Creating new %s", childPartClass.getSimpleName()));
 		log.info("Creating new child part of type '{}' with parent '{}'", childPartClass.getSimpleName(), parentPart);
@@ -313,7 +314,7 @@ public class InventoryManagerController implements Initializable {
 				
 				log.debug("Attempting to cast the DAO to be able to use it (create).");
 				@SuppressWarnings("unchecked")
-				Dao<CallNumberPart, Long> typedDao = (Dao<CallNumberPart, Long>) dbManager.getDao(newPartClass);
+				Dao<CallNumberPart, Long> typedDao = (Dao<CallNumberPart, Long>) dbManager.getPartDao(newPartClass);
 				
 				try {
 					typedDao.create(newPart);
@@ -363,7 +364,7 @@ public class InventoryManagerController implements Initializable {
 			
 			log.debug("Attempting to cast the DAO to be able to use it (edit).");
 			@SuppressWarnings("unchecked")
-			Dao<CallNumberPart, Long> typedDao = (Dao<CallNumberPart, Long>) dbManager.getDao(this.selectedPart.getClass());
+			Dao<CallNumberPart, Long> typedDao = (Dao<CallNumberPart, Long>) dbManager.getPartDao(this.selectedPart.getClass());
 			
 			try {
 				typedDao.update(this.selectedPart);
@@ -463,7 +464,7 @@ public class InventoryManagerController implements Initializable {
 	 * @param selectedPart The part to delete.
 	 * @return {@code true} if the deletion was successful, {@code false} otherwise.
 	 */
-	private boolean safelyDeletePart(@NotNull CallNumberPart selectedPart) {
+	private boolean safelyDeletePart(@NonNull CallNumberPart selectedPart) {
 		// This part can have children
 		if (selectedPart.hasChild()) {
 			log.debug("Parent {} can have children", selectedPart);
@@ -523,7 +524,7 @@ public class InventoryManagerController implements Initializable {
 				if (result.isPresent() && result.get() == ButtonType.OK) {
 					log.info("Attempting to cascade-delete {} '{}'", selectedPart.getClass().getSimpleName(), selectedPart.formatString());
 					@SuppressWarnings("unchecked")
-					Dao<CallNumberPart, Long> parentDao = (Dao<CallNumberPart, Long>) dbManager.getDao(selectedPart.getClass());
+					Dao<CallNumberPart, Long> parentDao = (Dao<CallNumberPart, Long>) dbManager.getPartDao(selectedPart.getClass());
 					
 					try {
 						String formattedParentName = selectedPart.formatString();
@@ -583,7 +584,7 @@ public class InventoryManagerController implements Initializable {
 	 * @param prompt Whether the user will be prompted to delete.
 	 * @return {@code true} if the deletion was successful, {@code false} otherwise.
 	 */
-	private boolean simpleDeletePart(@NotNull CallNumberPart selectedPart, boolean prompt) {
+	private boolean simpleDeletePart(@NonNull CallNumberPart selectedPart, boolean prompt) {
 		assert (
 				!selectedPart.hasChild()
 				|| ((HasChildPart<?>) selectedPart).getChildCollection().stream().noneMatch(c -> (
@@ -609,7 +610,7 @@ public class InventoryManagerController implements Initializable {
 			// Confirmed
 			if (result.isPresent() && result.get() == ButtonType.OK) {
 				@SuppressWarnings("unchecked")
-				Dao<CallNumberPart, Long> parentDao = (Dao<CallNumberPart, Long>) dbManager.getDao(
+				Dao<CallNumberPart, Long> parentDao = (Dao<CallNumberPart, Long>) dbManager.getPartDao(
 						selectedPart.getClass());
 				
 				log.info("Attempting simple deletion (with-prompt) of {}", selectedPart);
@@ -656,7 +657,7 @@ public class InventoryManagerController implements Initializable {
 			log.info("Attempting simple deletion (no-prompt) of {}", selectedPart);
 			try {
 				@SuppressWarnings("unchecked")
-				Dao<CallNumberPart, Long> parentDao = (Dao<CallNumberPart, Long>) dbManager.getDao(selectedPart.getClass());
+				Dao<CallNumberPart, Long> parentDao = (Dao<CallNumberPart, Long>) dbManager.getPartDao(selectedPart.getClass());
 				parentDao.delete(selectedPart);
 				String selToStr = selectedPart.toString();
 				log.info("Successfully deleted (no-prompt) {}", selToStr);
@@ -953,7 +954,7 @@ public class InventoryManagerController implements Initializable {
 		log.debug("Button clicked: delete subject");
 		event.consume();
 		
-		@Nullable Subject selectedSubject = listSubject.getSelectionModel().getSelectedItem();
+		@org.jetbrains.annotations.Nullable Subject selectedSubject = listSubject.getSelectionModel().getSelectedItem();
 		if (selectedSubject == null) {
 			return;
 		}
@@ -969,7 +970,7 @@ public class InventoryManagerController implements Initializable {
 		log.debug("Button clicked: delete domain");
 		event.consume();
 		
-		@Nullable Domain selectedDomain = listDomain.getSelectionModel().getSelectedItem();
+		@org.jetbrains.annotations.Nullable Domain selectedDomain = listDomain.getSelectionModel().getSelectedItem();
 		if (selectedDomain == null) {
 			return;
 		}
@@ -984,7 +985,7 @@ public class InventoryManagerController implements Initializable {
 		log.debug("Button clicked: delete root");
 		event.consume();
 		
-		@Nullable Root selectedRoot = listRoot.getSelectionModel().getSelectedItem();
+		@org.jetbrains.annotations.Nullable Root selectedRoot = listRoot.getSelectionModel().getSelectedItem();
 		if (selectedRoot == null) {
 			return;
 		}
@@ -1000,7 +1001,7 @@ public class InventoryManagerController implements Initializable {
 		log.debug("Button clicked: delete aspect");
 		event.consume();
 		
-		@Nullable Aspect selectedAspect = listAspect.getSelectionModel().getSelectedItem();
+		@org.jetbrains.annotations.Nullable Aspect selectedAspect = listAspect.getSelectionModel().getSelectedItem();
 		if (selectedAspect == null) {
 			return;
 		}
@@ -1016,7 +1017,7 @@ public class InventoryManagerController implements Initializable {
 		log.debug("Button clicked: delete topic");
 		event.consume();
 		
-		@Nullable Topic selectedTopic = listTopic.getSelectionModel().getSelectedItem();
+		@org.jetbrains.annotations.Nullable Topic selectedTopic = listTopic.getSelectionModel().getSelectedItem();
 		if (selectedTopic == null) {
 			return;
 		}
@@ -1031,7 +1032,7 @@ public class InventoryManagerController implements Initializable {
 		log.debug("Button clicked: delete author/publisher");
 		event.consume();
 		
-		@Nullable AuthorPublisher selectedAuthorPublisher = listAuthorPublisher.getSelectionModel().getSelectedItem();
+		@org.jetbrains.annotations.Nullable AuthorPublisher selectedAuthorPublisher = listAuthorPublisher.getSelectionModel().getSelectedItem();
 		if (selectedAuthorPublisher == null) {
 			return;
 		}

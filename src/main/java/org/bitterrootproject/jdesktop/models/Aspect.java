@@ -6,6 +6,8 @@ import com.j256.ormlite.field.ForeignCollectionField;
 import com.j256.ormlite.table.DatabaseTable;
 
 import lombok.*;
+import org.jspecify.annotations.NonNull;
+// import org.jspecify.annotations.NonNull;
 
 
 /**
@@ -33,8 +35,9 @@ public class Aspect extends CallNumberPart implements HasParentPart<Root>, HasCh
 	@SuppressWarnings("unused")
 	public static String FIELD_NAME_PARENT = Aspect.FIELD_NAME_ROOT;
 	
-	public Root getParent() { return root; }
-	public void setParent(Root root) { setRoot(root); }
+	public @NonNull Root getParent() { return root; }
+	public void setParent(@NonNull Root root) { setRoot(root); }
+	public Class<Root> getParentClass() { return Root.class; }
 	
 	// Child field
 	

@@ -4,6 +4,8 @@ import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
 import lombok.*;
+import org.jspecify.annotations.NonNull;
+
 
 
 /**
@@ -19,10 +21,12 @@ import lombok.*;
 @NoArgsConstructor
 public class Domain extends CallNumberPart implements HasParentPart<Subject> {
 	
+	@NonNull
 	@DatabaseField(
 			foreign = true,
 			foreignAutoCreate = true,
-			foreignAutoRefresh = true
+			foreignAutoRefresh = true,
+			canBeNull = false
 	)
 	private Subject subject;
 	
@@ -30,7 +34,8 @@ public class Domain extends CallNumberPart implements HasParentPart<Subject> {
 	@SuppressWarnings("unused")
 	public static String FIELD_NAME_PARENT = Domain.FIELD_NAME_SUBJECT;
 	
+	@NonNull
 	public Subject getParent() { return subject; }
-	public void setParent(Subject subject) { setSubject(subject); }
-	
+	public void setParent(@NonNull Subject subject) { setSubject(subject); }
+	public Class<Subject> getParentClass() { return Subject.class; }
 }

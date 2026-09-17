@@ -2,6 +2,7 @@ module org.bitterrootproject.jdesktop {
 	// JavaFX stuff
     requires javafx.controls;
     requires javafx.fxml;
+	requires javafx.graphics;
 
     requires org.controlsfx.controls;
     requires com.dlsc.formsfx;
@@ -17,6 +18,7 @@ module org.bitterrootproject.jdesktop {
 	// Misc. language helpers and util libraries
 	requires static lombok;
 	requires org.jetbrains.annotations;
+	requires org.jspecify;
 	requires org.apache.commons.lang3;
 	
 	// Used to get the right folders on each OS
@@ -36,13 +38,12 @@ module org.bitterrootproject.jdesktop {
 	uses java.sql.DriverManager;
 	
 	// Allow each package to open the specific libraries they need
-	opens org.bitterrootproject.jdesktop to javafx.fxml, net.harawata.appdirs;
+	opens org.bitterrootproject.jdesktop to javafx.fxml, javafx.graphics, net.harawata.appdirs, ormlite.jdbc;
 	opens org.bitterrootproject.jdesktop.gui to javafx.fxml;
-	opens org.bitterrootproject.jdesktop.models to ormlite.jdbc, javafx.base;
+	opens org.bitterrootproject.jdesktop.models to ormlite.jdbc, javafx.base, com.google.guice;
 	opens org.bitterrootproject.jdesktop.utils to javafx.fxml, net.harawata.appdirs;
 	
 	// Not sure what this does
-    exports org.bitterrootproject.jdesktop;
 	exports org.bitterrootproject.jdesktop.models to ormlite.jdbc;
 	exports org.bitterrootproject.jdesktop.utils;
 }

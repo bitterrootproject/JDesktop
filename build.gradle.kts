@@ -15,7 +15,8 @@ version = "1.0.0"
 
 var globalAppName = "JDesktop"
 var globalMainModule = "org.bitterrootproject.jdesktop"
-var globalMainClassFQ = "org.bitterrootproject.jdesktop.AppMain"
+var globalManClass = if (project.hasProperty("mainClass")) project.property("mainClass").toString() else "AppMain"
+var globalMainClassFQ = "$globalMainModule.$globalManClass"
 
 
 repositories {
@@ -109,10 +110,14 @@ dependencies {
     // Used to get the right folders on each OS
     implementation("net.harawata:appdirs:1.5.0")
 
+    // XML parsing
+    //implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.22.2")
+
 
     // Extra helpful stuff
     implementation("org.apache.commons:commons-lang3:3.20.0")
     implementation("org.jetbrains:annotations:26.1.0")
+    implementation("org.jspecify:jspecify:1.0.1")
 }
 
 tasks.withType<Test> {
