@@ -9,6 +9,9 @@ import org.bitterrootproject.jdesktop.models.*;
 import org.bitterrootproject.jdesktop.utils.EnvTools;
 import org.bitterrootproject.jdesktop.utils.FileManager;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 import java.nio.file.Path;
 import java.sql.SQLException;
 
@@ -40,13 +43,13 @@ public final class DatabaseManager {
 	
 	private final JdbcConnectionSource connectionSource;
 	
-	public final Dao<Subject, Long> subjects;
-	public final Dao<Domain, Long> domains;
-	public final Dao<Root, Long> roots;
-	public final Dao<Aspect, Long> aspects;
-	public final Dao<Topic, Long> topics;
-	public final Dao<AuthorPublisher, Long> authorPublishers;
-	public final Dao<CallNumber, Long> callNumbers;
+	public final @NonNull Dao<Subject, Long> subjects;
+	public final @NonNull Dao<Domain, Long> domains;
+	public final @NonNull Dao<Root, Long> roots;
+	public final @NonNull Dao<Aspect, Long> aspects;
+	public final @NonNull Dao<Topic, Long> topics;
+	public final @NonNull Dao<AuthorPublisher, Long> authorPublishers;
+	public final @NonNull Dao<CallNumber, Long> callNumbers;
 	
 	
 	/**
@@ -133,7 +136,8 @@ public final class DatabaseManager {
 	 * @param partClassName Name of the class (in PascalCase)
 	 * @return The DAO for the specified class name
 	 */
-	public Dao<? extends CallNumberPart, Long> getDao(String partClassName) {
+	@Nullable
+	public Dao<? extends CallNumberPart, Long> getPartDao(String partClassName) {
 		return switch (partClassName) {
 			case "Subject" -> this.subjects;
 			case "Domain" -> this.domains;
@@ -150,7 +154,7 @@ public final class DatabaseManager {
 	 * @param partClass The actual class (not it's name or an instance)
 	 * @return The DAO for the given class
 	 */
-	public Dao<? extends CallNumberPart, Long> getDao(Class<? extends CallNumberPart> partClass) {
-		return getDao(partClass.getSimpleName());
+	public Dao<? extends CallNumberPart, Long> getPartDao(Class<? extends CallNumberPart> partClass) {
+		return getPartDao(partClass.getSimpleName());
 	}
 }

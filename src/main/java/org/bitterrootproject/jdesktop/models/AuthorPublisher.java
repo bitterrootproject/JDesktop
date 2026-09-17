@@ -15,4 +15,5 @@ import lombok.*;
 
 @Getter @Setter
 @AllArgsConstructor
+// @NoArgsConstructor
 public class AuthorPublisher extends CallNumberPart {}
