@@ -18,6 +18,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.Locale;
 
+@SuppressWarnings("DuplicatedCode")
 public class CliMain {
 	public static void main(String[] args) throws Exception {
 		AppDirs appDirs = AppDirsFactory.getInstance();

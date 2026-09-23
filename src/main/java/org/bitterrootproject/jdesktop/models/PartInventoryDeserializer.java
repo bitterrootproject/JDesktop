@@ -28,51 +28,18 @@ public class PartInventoryDeserializer extends DefaultHandler {
 	@Getter
 	private final HashMap<Long, AuthorPublisher> authorPublishers = new HashMap<>();
 	
-	
-	// private final Dao<Subject, Long> subjectDao;
-	// private final Dao<Domain, Long> domainDao;
-	// private final Dao<Root, Long> rootDao;
-	// private final Dao<Aspect, Long> aspectDao;
-	// private final Dao<Topic, Long> topicDao;
-	// private final Dao<AuthorPublisher, Long> authorPublisherDao;
-	
-	
 	private StringBuilder elementValue;
 	
 	private Object scratchObject;
-	// private HashMap<?, ?> scratchHashMap;
 	private Class<?> scratchClass;
 	private Long scratchId;
 	
 	private Object parentObject;
 	private Class<?> parentClass;
 	
-	// private boolean hasParent;
-	// private HashMap<?, ?> parentHashMap;
-	// private Long parentId;
-	
-	private boolean inPart = false;
-	private boolean inParentLinkPart = false;
-	
-	
-	public PartInventoryDeserializer() {
-		super();
-		
-		// var db = DatabaseManager.getInstance();
-		
-		// this.subjectDao = db.subjects;
-		// this.domainDao = db.domains;
-		// this.rootDao = db.roots;
-		// this.aspectDao = db.aspects;
-		// this.topicDao = db.topics;
-		// this.authorPublisherDao = db.authorPublishers;
-	}
-	
 	
 	@Nullable
 	private Object createNewPart() {
-		// this.scratchClass = scratchClass;
-		
 		log.debug("Creating new part of type '{}' for deserialization", scratchClass.getSimpleName());
 		try {
 			Constructor<?> constructor = scratchClass.getConstructor();
@@ -141,96 +108,55 @@ public class PartInventoryDeserializer extends DefaultHandler {
 	}
 	
 	@Override
-	public void startDocument() {
-		// scratchObject = createNewPart()
-		// scratchObject = new Object();
-		// parentObject = new Object();
-	}
-	
-	@Override
 	public void startElement(String uri, String localName, String qName, Attributes attributes) {
+		// Upper-case names are the actual parts themselves, and will contain the `id` attribute.
+		// Lower-case names are used to reference the parent element, and will contain the `ref` attribute
+		// or are the name/number field of the part.
 		switch (qName) {
-			case "Subjects" -> { scratchClass = Subject.class; }
-			// case "Subject" -> {
-			// 	if (!inPart) {
-			// 		;
-			// 	} else {
-			// 		inParentLinkPart = true;
-			// 		parentObject = subjects.get(Long.parseLong(attributes.getValue("ref")));
-			// 	}
-			// }
-			case "Subject" -> { initScratch(attributes); }
-			case "subject" -> {
-				inParentLinkPart = true;
-				parentObject = subjects.get(Long.parseLong(attributes.getValue("ref")));
-			}
+			case "Subject", "Domain", "AuthorPublisher", "Topic", "Aspect", "Root" -> initScratch(attributes);
+			
+			case "Subjects" -> scratchClass = Subject.class;
+			// parent ref element
+			case "subject" -> parentObject = subjects.get(Long.parseLong(
+					attributes.getValue("ref")
+			));
 			
 			case "Domains" -> { scratchClass = Domain.class; parentClass = Subject.class; }
-			case "Domain" -> { initScratch(attributes); }
 			
-			case "Roots" -> { scratchClass = Root.class; }
-			// case "Root" -> {
-			// 	if (!inPart) {
-			// 		initScratch(attributes);
-			// 	} else {
-			// 		inParentLinkPart = true;
-			// 		parentObject = roots.get(Long.parseLong(attributes.getValue("ref")));
-			// 	}
-			// }
-			case "Root" -> { initScratch(attributes); }
-			case "root" -> {
-				inParentLinkPart = true;
-				parentObject = roots.get(Long.parseLong(attributes.getValue("ref")));
-			}
+			case "Roots" -> scratchClass = Root.class;
+			case "root" -> parentObject = roots.get(Long.parseLong(
+					attributes.getValue("ref")
+			));
 			
 			case "Aspects" -> { scratchClass = Aspect.class; parentClass = Root.class; }
-			// case "Aspect" -> {
-			// 	if (!inPart) {
-			// 		initScratch(attributes);
-			// 	} else {
-			// 		inParentLinkPart = true;
-			// 		parentObject = aspects.get(Long.parseLong(attributes.getValue("ref")));
-			// 	}
-			// }
-			case "Aspect" -> { initScratch(attributes); }
-			case "aspect" -> {
-				inParentLinkPart = true;
-				parentObject = aspects.get(Long.parseLong(attributes.getValue("ref")));
-			}
+			case "aspect" -> parentObject = aspects.get(Long.parseLong(
+					attributes.getValue("ref")
+			));
 			
 			case "Topics" -> { scratchClass = Topic.class; parentClass = Aspect.class; }
-			case "Topic" -> { initScratch(attributes); }
 			
-			case "AuthorPublishers" -> { scratchClass = AuthorPublisher.class; }
-			case "AuthorPublisher" -> { initScratch(attributes); }
+			case "AuthorPublishers" -> scratchClass = AuthorPublisher.class;
 			
-			
-			case "number", "name" -> { elementValue = new StringBuilder(); }
+			case "number", "name" -> elementValue = new StringBuilder();
 		}
 	}
 	
 	
 	@Override
 	public void endElement(String uri, String localName, String qName) {
+		// Upper-case names are the actual parts themselves, and will contain the `id` attribute.
+		// Lower-case names are used to reference the parent element, and will contain the `ref` attribute
+		// or are the name/number field of the part.
 		switch (qName) {
-			case "Subjects" -> { scratchClass = null; }
-			// case "Subject" -> {
-			// 	if (inParentLinkPart) {
-			// 		inParentLinkPart = false;
-			// 	} else {
-			// 		subjects.put(scratchId, (Subject) scratchObject);
-			// 		cleanupScratch();
-			// 	}
-			// }
+			case "Subjects", "AuthorPublishers", "Roots" -> scratchClass = null;
+			case "Domains", "Topics", "Aspects" -> { scratchClass = null; parentClass = null; }
+			
+			
 			case "Subject" -> {
 				subjects.put(scratchId, (Subject) scratchObject);
 				cleanupScratch();
 			}
-			case "subject", "root", "aspect" -> {
-				inParentLinkPart = false;
-			}
 			
-			case "Domains" -> { scratchClass = null; parentClass = null; }
 			case "Domain" -> {
 				setParent(parentObject);
 				parentObject = null;
@@ -238,31 +164,11 @@ public class PartInventoryDeserializer extends DefaultHandler {
 				cleanupScratch();
 			}
 			
-			case "Roots" -> { scratchClass = null; }
-			// case "Root" -> {
-			// 	if (inParentLinkPart) {
-			// 		inParentLinkPart = false;
-			// 	} else {
-			// 		roots.put(scratchId, (Root) scratchObject);
-			// 		cleanupScratch();
-			// 	}
-			// }
 			case "Root" -> {
 				roots.put(scratchId, (Root) scratchObject);
 				cleanupScratch();
 			}
 			
-			case "Aspects" -> { scratchClass = null; parentClass = null; }
-			// case "Aspect" -> {
-			// 	if (inParentLinkPart) {
-			// 		inParentLinkPart = false;
-			// 	} else {
-			// 		setParent(parentObject);
-			// 		parentObject = null;
-			// 		aspects.put(scratchId, (Aspect) scratchObject);
-			// 		cleanupScratch();
-			// 	}
-			// }
 			case "Aspect" -> {
 				setParent(parentObject);
 				parentObject = null;
@@ -270,7 +176,6 @@ public class PartInventoryDeserializer extends DefaultHandler {
 				cleanupScratch();
 			}
 			
-			case "Topics" -> { scratchClass = null; parentClass = null; }
 			case "Topic" -> {
 				setParent(parentObject);
 				parentObject = null;
@@ -278,17 +183,17 @@ public class PartInventoryDeserializer extends DefaultHandler {
 				cleanupScratch();
 			}
 			
-			case "AuthorPublishers" -> { scratchClass = null; }
 			case "AuthorPublisher" -> {
 				authorPublishers.put(scratchId, (AuthorPublisher) scratchObject);
 				cleanupScratch();
 			}
 			
 			
-			case "number" -> { setNumber(elementValue.toString().strip()); }
-			case "name" -> { setName(elementValue.toString().strip()); }
+			case "number" -> setNumber(elementValue.toString().strip());
+			case "name" -> setName(elementValue.toString().strip());
 		}
 	}
+	
 	
 	private void initScratch(Attributes attributes) {
 		var id = Long.parseLong(attributes.getValue("id"));
@@ -296,7 +201,6 @@ public class PartInventoryDeserializer extends DefaultHandler {
 	}
 	
 	private void initScratch(Long id) {
-		inPart = true;
 		scratchObject = createNewPart();
 		scratchId = id;
 		setPartId(id);
@@ -305,6 +209,5 @@ public class PartInventoryDeserializer extends DefaultHandler {
 	private void cleanupScratch() {
 		scratchId = null;
 		scratchObject = null;
-		inPart = false;
 	}
 }
