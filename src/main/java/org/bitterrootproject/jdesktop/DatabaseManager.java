@@ -43,8 +43,8 @@ public final class DatabaseManager {
 	
 	private final JdbcConnectionSource connectionSource;
 	
-	public final @NonNull Dao<Subject, Long> subjects;
 	public final @NonNull Dao<Domain, Long> domains;
+	public final @NonNull Dao<Subdomain, Long> subdomains;
 	public final @NonNull Dao<Root, Long> roots;
 	public final @NonNull Dao<Aspect, Long> aspects;
 	public final @NonNull Dao<Topic, Long> topics;
@@ -57,8 +57,8 @@ public final class DatabaseManager {
 	 */
 	private void initializeTables() {
 		try {
-			TableUtils.createTableIfNotExists(connectionSource, Subject.class);
 			TableUtils.createTableIfNotExists(connectionSource, Domain.class);
+			TableUtils.createTableIfNotExists(connectionSource, Subdomain.class);
 			TableUtils.createTableIfNotExists(connectionSource, Root.class);
 			TableUtils.createTableIfNotExists(connectionSource, Aspect.class);
 			TableUtils.createTableIfNotExists(connectionSource, Topic.class);
@@ -80,8 +80,8 @@ public final class DatabaseManager {
 		this.connectionSource = connectionSource;
 		initializeTables();
 		
-		this.subjects = DaoManager.createDao(connectionSource, Subject.class);
 		this.domains = DaoManager.createDao(connectionSource, Domain.class);
+		this.subdomains = DaoManager.createDao(connectionSource, Subdomain.class);
 		this.roots = DaoManager.createDao(connectionSource, Root.class);
 		this.aspects = DaoManager.createDao(connectionSource, Aspect.class);
 		this.topics = DaoManager.createDao(connectionSource, Topic.class);
@@ -139,8 +139,8 @@ public final class DatabaseManager {
 	@Nullable
 	public Dao<? extends CallNumberPart, Long> getPartDao(String partClassName) {
 		return switch (partClassName) {
-			case "Subject" -> this.subjects;
 			case "Domain" -> this.domains;
+			case "Subdomain" -> this.subdomains;
 			case "Root" -> this.roots;
 			case "Aspect" -> this.aspects;
 			case "Topic" -> this.topics;

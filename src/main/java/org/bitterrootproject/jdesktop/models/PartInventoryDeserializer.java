@@ -16,9 +16,9 @@ import java.util.HashMap;
 public class PartInventoryDeserializer extends DefaultHandler {
 	
 	@Getter
-	private final HashMap<Long, Subject> subjects = new HashMap<>();
+	private final HashMap<Long, Domain> subjects = new HashMap<>();
 	@Getter
-	private final HashMap<Long, Domain> domains = new HashMap<>();
+	private final HashMap<Long, Subdomain> domains = new HashMap<>();
 	@Getter
 	private final HashMap<Long, Root> roots = new HashMap<>();
 	@Getter
@@ -93,7 +93,7 @@ public class PartInventoryDeserializer extends DefaultHandler {
 	
 	private boolean partHasParent() {
 		switch (scratchClass.getSimpleName()) {
-			case "Domain", "Aspect", "Topic" -> { return true; }
+			case "Subdomain", "Aspect", "Topic" -> { return true; }
 			default -> { return false; }
 		}
 	}
@@ -113,15 +113,15 @@ public class PartInventoryDeserializer extends DefaultHandler {
 		// Lower-case names are used to reference the parent element, and will contain the `ref` attribute
 		// or are the name/number field of the part.
 		switch (qName) {
-			case "Subject", "Domain", "AuthorPublisher", "Topic", "Aspect", "Root" -> initScratch(attributes);
+			case "Domain", "Subdomain", "AuthorPublisher", "Topic", "Aspect", "Root" -> initScratch(attributes);
 			
-			case "Subjects" -> scratchClass = Subject.class;
+			case "Domains" -> scratchClass = Domain.class;
 			// parent ref element
-			case "subject" -> parentObject = subjects.get(Long.parseLong(
+			case "domain" -> parentObject = subjects.get(Long.parseLong(
 					attributes.getValue("ref")
 			));
 			
-			case "Domains" -> { scratchClass = Domain.class; parentClass = Subject.class; }
+			case "Subdomains" -> { scratchClass = Subdomain.class; parentClass = Domain.class; }
 			
 			case "Roots" -> scratchClass = Root.class;
 			case "root" -> parentObject = roots.get(Long.parseLong(
@@ -152,15 +152,15 @@ public class PartInventoryDeserializer extends DefaultHandler {
 			case "Domains", "Topics", "Aspects" -> { scratchClass = null; parentClass = null; }
 			
 			
-			case "Subject" -> {
-				subjects.put(scratchId, (Subject) scratchObject);
+			case "Domain" -> {
+				subjects.put(scratchId, (Domain) scratchObject);
 				cleanupScratch();
 			}
 			
-			case "Domain" -> {
+			case "Subdomain" -> {
 				setParent(parentObject);
 				parentObject = null;
-				domains.put(scratchId, (Domain) scratchObject);
+				domains.put(scratchId, (Subdomain) scratchObject);
 				cleanupScratch();
 			}
 			

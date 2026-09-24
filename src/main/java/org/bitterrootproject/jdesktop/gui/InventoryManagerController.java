@@ -57,10 +57,10 @@ public class InventoryManagerController implements Initializable {
 	
 	// Filter fields
 	@FXML
-	private TextField textFieldFilterSubject;
+	private TextField textFieldFilterDomain;
 	
 	@FXML
-	private TextField textFieldFilterDomain;
+	private TextField textFieldFilterSubdomain;
 	
 	@FXML
 	private TextField textFieldFilterRoot;
@@ -95,14 +95,14 @@ public class InventoryManagerController implements Initializable {
 	
 	// List views
 	@FXML
-	private ListView<Subject> listSubject;
-	private final ListProperty<Subject> filteredSubjects = new SimpleListProperty<>();
-	private final ListProperty<Subject> allSubjects = new SimpleListProperty<>();
-	
-	@FXML
 	private ListView<Domain> listDomain;
 	private final ListProperty<Domain> filteredDomains = new SimpleListProperty<>();
 	private final ListProperty<Domain> allDomains = new SimpleListProperty<>();
+	
+	@FXML
+	private ListView<Subdomain> listSubdomain;
+	private final ListProperty<Subdomain> filteredSubdomains = new SimpleListProperty<>();
+	private final ListProperty<Subdomain> allSubdomains = new SimpleListProperty<>();
 	
 	@FXML
 	private ListView<Root> listRoot;
@@ -167,8 +167,8 @@ public class InventoryManagerController implements Initializable {
 	
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
-		listSubject.setCellFactory(new CallNumberPartCellFactory<>());
 		listDomain.setCellFactory(new CallNumberPartCellFactory<>());
+		listSubdomain.setCellFactory(new CallNumberPartCellFactory<>());
 		listRoot.setCellFactory(new CallNumberPartCellFactory<>());
 		listAspect.setCellFactory(new CallNumberPartCellFactory<>());
 		listTopic.setCellFactory(new CallNumberPartCellFactory<>());
@@ -181,23 +181,23 @@ public class InventoryManagerController implements Initializable {
 		this.dbManager = DatabaseManager.getInstance();
 		
 		// Set the collections to monitor
-		listSubject.setItems(filteredSubjects);
 		listDomain.setItems(filteredDomains);
+		listSubdomain.setItems(filteredSubdomains);
 		listRoot.setItems(filteredRoots);
 		listAspect.setItems(filteredAspects);
 		listTopic.setItems(filteredTopics);
 		listAuthorPublisher.setItems(filteredAuthorPublishers);
 
 		// Bind the filter field to the collections
-		filteredSubjects.bind(createFilterBinding(textFieldFilterSubject, allSubjects));
 		filteredDomains.bind(createFilterBinding(textFieldFilterDomain, allDomains));
+		filteredSubdomains.bind(createFilterBinding(textFieldFilterSubdomain, allSubdomains));
 		filteredRoots.bind(createFilterBinding(textFieldFilterRoot, allRoots));
 		filteredAspects.bind(createFilterBinding(textFieldFilterAspect, allAspects));
 		filteredTopics.bind(createFilterBinding(textFieldFilterTopic, allTopics));
 		filteredAuthorPublishers.bind(createFilterBinding(textFieldFilterAuthorPublisher, allAuthorPublishers));
 		
 		
-		loadSubjects();
+		loadDomains();
 		loadRoots();
 		loadAuthorPublishers();
 	}
@@ -397,17 +397,17 @@ public class InventoryManagerController implements Initializable {
 		
 		// Reload the list of parts that just had a part saved or created
 		switch (lastSavedPartClassName) {
-			case "Subject" -> {
-				log.debug("Decided to reload subjects");
-				loadSubjects();
-				listSubject.getSelectionModel().select((Subject) lastSavedPart);
-				loadDomains((Subject) lastSavedPart);
-			}
 			case "Domain" -> {
-				Subject subject = ((Domain) lastSavedPart).getSubject();
-				log.debug("Decided to reload domains with parent subject_id {}", subject.getId());
-				loadDomains(subject);
+				log.debug("Decided to reload domains");
+				loadDomains();
 				listDomain.getSelectionModel().select((Domain) lastSavedPart);
+				loadSubdomains((Domain) lastSavedPart);
+			}
+			case "Subdomain" -> {
+				Domain domain = ((Subdomain) lastSavedPart).getDomain();
+				log.debug("Decided to reload subdomains with parent domain_id {}", domain.getId());
+				loadSubdomains(domain);
+				listSubdomain.getSelectionModel().select((Subdomain) lastSavedPart);
 			}
 			case "Root" -> {
 				log.debug("Decided to reload roots");
@@ -684,32 +684,32 @@ public class InventoryManagerController implements Initializable {
 	}
 	
 	
-	private void loadSubjects() {
+	private void loadDomains() {
 		try {
-			var subjects = dbManager.subjects.queryForAll();
-			allSubjects.set(FXCollections.observableList(subjects));
+			var domains = dbManager.domains.queryForAll();
+			allDomains.set(FXCollections.observableList(domains));
 		} catch (SQLException e) {
-			log.error("Failed to get subjects", e);
-			// listSubject.setItems(null);
-			allSubjects.clear();
+			log.error("Failed to get domains", e);
+			// listDomain.setItems(null);
+			allDomains.clear();
 		}
 	}
 	
-	private void loadDomains(@Nullable Subject parentSubject) {
-		if (parentSubject == null) {
-			allDomains.clear();
+	private void loadSubdomains(@Nullable Domain parentDomain) {
+		if (parentDomain == null) {
+			allSubdomains.clear();
 		} else {
 			try {
-				QueryBuilder<Domain, Long> queryBuilder = dbManager.domains.queryBuilder();
-				queryBuilder.where().eq(Domain.FIELD_NAME_SUBJECT, parentSubject.getId());
-				PreparedQuery<Domain> preparedQuery = queryBuilder.prepare();
-				ObservableList<Domain> items = FXCollections.observableList(dbManager.domains.query(preparedQuery));
-				allDomains.set(items);
+				QueryBuilder<Subdomain, Long> queryBuilder = dbManager.subdomains.queryBuilder();
+				queryBuilder.where().eq(Subdomain.FIELD_NAME_DOMAIN, parentDomain.getId());
+				PreparedQuery<Subdomain> preparedQuery = queryBuilder.prepare();
+				ObservableList<Subdomain> items = FXCollections.observableList(dbManager.subdomains.query(preparedQuery));
+				allSubdomains.set(items);
 				
 			} catch (SQLException e) {
-				log.error("Failed to query domains with parent subject id '{}'", parentSubject.getId(), e);
-				// listDomain.setItems(null);
-				allDomains.clear();
+				log.error("Failed to query subdomains with parent domain id '{}'", parentDomain.getId(), e);
+				// listSubdomain.setItems(null);
+				allSubdomains.clear();
 			}
 		}
 	}
@@ -776,22 +776,6 @@ public class InventoryManagerController implements Initializable {
 	// LIST CLICK HANDLERS //
 	
 	@FXML
-	private void onMouseClickListSubject(MouseEvent mouseEvent) {
-		mouseEvent.consume();
-		
-		Subject selectedSubject = listSubject.getSelectionModel().getSelectedItem();
-		log.debug("Selected subject: {}", selectedSubject);
-		if (selectedSubject == null) {
-			return;
-		}
-		
-		selectPartForEditing(selectedSubject);
-		// this func also sets `selectedPart`
-		
-		loadDomains(selectedSubject);
-	}
-	
-	@FXML
 	private void onMouseClickListDomain(MouseEvent mouseEvent) {
 		mouseEvent.consume();
 		
@@ -801,9 +785,25 @@ public class InventoryManagerController implements Initializable {
 			return;
 		}
 		
-		parentPart = selectedDomain.getSubject();
-		
 		selectPartForEditing(selectedDomain);
+		// this func also sets `selectedPart`
+		
+		loadSubdomains(selectedDomain);
+	}
+	
+	@FXML
+	private void onMouseClickListSubdomain(MouseEvent mouseEvent) {
+		mouseEvent.consume();
+		
+		Subdomain selectedSubdomain = listSubdomain.getSelectionModel().getSelectedItem();
+		log.debug("Selected subdomain: {}", selectedSubdomain);
+		if (selectedSubdomain == null) {
+			return;
+		}
+		
+		parentPart = selectedSubdomain.getDomain();
+		
+		selectPartForEditing(selectedSubdomain);
 		// this func also sets `selectedPart`
 	}
 	
@@ -869,21 +869,21 @@ public class InventoryManagerController implements Initializable {
 	// Create
 	
 	@FXML
-	private void onClickButtonNewSubject(ActionEvent event) {
+	private void onClickButtonNewDomain(ActionEvent event) {
 		event.consume();
-		log.debug("Button clicked: new subject");
+		log.debug("Button clicked: new domain");
 		
-		prepareEditPaneForNewPart(null, Subject.class);
+		prepareEditPaneForNewPart(null, Domain.class);
 		
 		selectedPartNameField.requestFocus();
 	}
 
 	@FXML
-	private void onClickButtonNewDomain(ActionEvent event) {
+	private void onClickButtonNewSubdomain(ActionEvent event) {
 		event.consume();
-		log.debug("Button clicked: new domain");
+		log.debug("Button clicked: new subdomain");
 		
-		prepareEditPaneForNewPart(listSubject.getSelectionModel().getSelectedItem(), Domain.class);
+		prepareEditPaneForNewPart(listDomain.getSelectionModel().getSelectedItem(), Subdomain.class);
 		
 		selectedPartNameField.requestFocus();
 	}
@@ -950,22 +950,6 @@ public class InventoryManagerController implements Initializable {
 	// Delete
 	
 	@FXML
-	private void onClickButtonDeleteSubject(ActionEvent event) {
-		log.debug("Button clicked: delete subject");
-		event.consume();
-		
-		@org.jetbrains.annotations.Nullable Subject selectedSubject = listSubject.getSelectionModel().getSelectedItem();
-		if (selectedSubject == null) {
-			return;
-		}
-		
-		if (safelyDeletePart(selectedSubject)) {
-			loadSubjects();
-			loadDomains(listSubject.getSelectionModel().getSelectedItem());
-		}
-	}
-	
-	@FXML
 	private void onClickButtonDeleteDomain(ActionEvent event) {
 		log.debug("Button clicked: delete domain");
 		event.consume();
@@ -976,7 +960,23 @@ public class InventoryManagerController implements Initializable {
 		}
 		
 		if (safelyDeletePart(selectedDomain)) {
-			loadDomains(null);
+			loadDomains();
+			loadSubdomains(listDomain.getSelectionModel().getSelectedItem());
+		}
+	}
+	
+	@FXML
+	private void onClickButtonDeleteSubdomain(ActionEvent event) {
+		log.debug("Button clicked: delete subdomain");
+		event.consume();
+		
+		@org.jetbrains.annotations.Nullable Subdomain selectedSubdomain = listSubdomain.getSelectionModel().getSelectedItem();
+		if (selectedSubdomain == null) {
+			return;
+		}
+		
+		if (safelyDeletePart(selectedSubdomain)) {
+			loadSubdomains(null);
 		}
 	}
 	

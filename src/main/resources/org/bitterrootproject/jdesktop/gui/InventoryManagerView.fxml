@@ -35,25 +35,25 @@
                <SplitPane dividerPositions="0.12929184549356224, 0.2784334763948498, 0.43186695278969955, 0.5810085836909872, 0.7473175965665236" AnchorPane.leftAnchor="8.0" AnchorPane.rightAnchor="8.0" AnchorPane.topAnchor="8.0">
                  <items>
                    <VBox prefWidth="0.0">
-                        <Label text="Subjects">
+                        <Label text="Domains">
                            <VBox.margin>
                               <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                            </VBox.margin>
                         </Label>
-                     <TextField fx:id="textFieldFilterSubject" promptText="Filter...">
+                     <TextField fx:id="textFieldFilterDomain" promptText="Filter...">
                            <VBox.margin>
                               <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                            </VBox.margin>
                         </TextField>
-                     <ListView fx:id="listSubject" onMouseClicked="#onMouseClickListSubject" prefWidth="129.0" />
+                     <ListView fx:id="listDomain" onMouseClicked="#onMouseClickListDomain" prefWidth="129.0" />
                         <HBox prefHeight="36.0" prefWidth="129.0">
                            <children>
-                           <Button minWidth="-Infinity" onAction="#onClickButtonNewSubject" text="New">
+                           <Button minWidth="-Infinity" onAction="#onClickButtonNewDomain" text="New">
                                  <HBox.margin>
                                     <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                                  </HBox.margin>
                               </Button>
-                              <Button minWidth="-Infinity" mnemonicParsing="false" onAction="#onClickButtonDeleteSubject" text="Delete" HBox.hgrow="ALWAYS">
+                              <Button minWidth="-Infinity" mnemonicParsing="false" onAction="#onClickButtonDeleteDomain" text="Delete" HBox.hgrow="ALWAYS">
                                  <HBox.margin>
                                     <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                                  </HBox.margin>
@@ -62,25 +62,25 @@
                         </HBox>
                    </VBox>
                    <VBox prefWidth="0.0">
-                        <Label text="Domains">
+                        <Label text="Subdomains">
                            <VBox.margin>
                               <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                            </VBox.margin>
                         </Label>
-                     <TextField fx:id="textFieldFilterDomain" promptText="Filter..." GridPane.columnIndex="1">
+                     <TextField fx:id="textFieldFilterSubdomain" promptText="Filter..." GridPane.columnIndex="1">
                            <VBox.margin>
                               <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                            </VBox.margin>
                         </TextField>
-                     <ListView fx:id="listDomain" onMouseClicked="#onMouseClickListDomain" prefWidth="171.0" />
+                     <ListView fx:id="listSubdomain" onMouseClicked="#onMouseClickListSubdomain" prefWidth="171.0" />
                         <HBox prefHeight="36.0" prefWidth="200.0">
                            <children>
-                           <Button minWidth="-Infinity" onAction="#onClickButtonNewDomain" text="New">
+                           <Button minWidth="-Infinity" onAction="#onClickButtonNewSubdomain" text="New">
                                  <HBox.margin>
                                     <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                                  </HBox.margin>
                               </Button>
-                              <Button minWidth="-Infinity" mnemonicParsing="false" onAction="#onClickButtonDeleteDomain" text="Delete">
+                              <Button minWidth="-Infinity" mnemonicParsing="false" onAction="#onClickButtonDeleteSubdomain" text="Delete">
                                  <HBox.margin>
                                     <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                                  </HBox.margin>

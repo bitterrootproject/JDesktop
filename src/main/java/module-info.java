@@ -40,7 +40,7 @@ module org.bitterrootproject.jdesktop {
 	// Allow each package to open the specific libraries they need
 	opens org.bitterrootproject.jdesktop to javafx.fxml, javafx.graphics, net.harawata.appdirs, ormlite.jdbc;
 	opens org.bitterrootproject.jdesktop.gui to javafx.fxml;
-	opens org.bitterrootproject.jdesktop.models to ormlite.jdbc, javafx.base, com.google.guice;
+	opens org.bitterrootproject.jdesktop.models to ormlite.jdbc, javafx.base;
 	opens org.bitterrootproject.jdesktop.utils to javafx.fxml, net.harawata.appdirs;
 	
 	// Not sure what this does

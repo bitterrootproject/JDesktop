@@ -45,9 +45,9 @@ import java.util.Locale;
  * </ul>
  *
  * <br>
- * A call number part can also have a parent part. For example, {@link Domain}'s parent part is {@link Subject}.
+ * A call number part can also have a parent part. For example, {@link Subdomain}'s parent part is {@link Domain}.
  * Establishing this relationship requires implementing the {@link HasParentPart} interface adding a few fields,
- * replacing "{parent_name}" where necessary. See {@link Domain} for an example of how this is done.
+ * replacing "{parent_name}" where necessary. See {@link Subdomain} for an example of how this is done.
  *
  * <ul>
  *     <li>

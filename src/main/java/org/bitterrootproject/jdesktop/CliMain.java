@@ -53,15 +53,15 @@ public class CliMain {
 		Element documentRoot = document.createElement("CallNumberParts");
 		document.appendChild(documentRoot);
 		
-		Element elSubjects = document.createElement("Subjects");
-		for (Subject subject : dbManager.subjects.queryForAll()) {
-			elSubjects.appendChild(subject.serialize(document));
+		Element elSubjects = document.createElement("Domains");
+		for (Domain domain : dbManager.domains.queryForAll()) {
+			elSubjects.appendChild(domain.serialize(document));
 		}
 		documentRoot.appendChild(elSubjects);
 		
-		Element elDomains = document.createElement("Domains");
-		for (Domain domain : dbManager.domains.queryForAll()) {
-			elDomains.appendChild(domain.serialize(document));
+		Element elDomains = document.createElement("Subdomains");
+		for (Subdomain subdomain : dbManager.subdomains.queryForAll()) {
+			elDomains.appendChild(subdomain.serialize(document));
 		}
 		documentRoot.appendChild(elDomains);
 		

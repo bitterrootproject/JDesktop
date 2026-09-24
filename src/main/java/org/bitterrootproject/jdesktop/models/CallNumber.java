@@ -28,14 +28,14 @@ public @Data class CallNumber {  // the @Data decorator is also Lombok magic: ht
 			foreignAutoCreate = true,
 			foreignAutoRefresh = true
 	)
-	private Subject subject;
+	private Domain domain;
 	
 	@DatabaseField(
 			foreign = true,
 			foreignAutoCreate = true,
 			foreignAutoRefresh = true
 	)
-	private Domain domain;
+	private Subdomain subdomain;
 	
 	@DatabaseField(
 			foreign = true,
