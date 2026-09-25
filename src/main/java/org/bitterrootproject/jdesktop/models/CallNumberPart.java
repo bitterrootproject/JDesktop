@@ -9,10 +9,11 @@ import org.w3c.dom.Document;
 
 import org.w3c.dom.Element;
 import java.util.Locale;
+import java.util.Objects;
 
 
 /**
- * This abstract class defines the base fields and methods required by all call number parts:
+ * This abstract class defines the base fields and methods used by all call number parts:
  *
  * <ul>
  *     <li>{@code id} - the internal database primary key.</li>
@@ -25,13 +26,15 @@ import java.util.Locale;
  *         <a href="https://ormlite.com/javadoc/ormlite-core/doc-files/ormlite.html#QueryBuilder-Basics">ORMLite best practices</a>
  *         and makes querying less error-prone.
  *     </li>
+ *     <li>{@code hasParent()} - whether this part can have a parent, but not necessarily that it actually has one assigned</li>
+ *     <li>{@code hasChild()} - whether this part can have children, but not necessarily that it actually has any</li>
+ *     <li>{@code serialize()} - serialize this part into its XML form</li>
  * </ul>
  *
- * <br>
+ * <br/>
  * All call number parts which extend this abstract class must have the following decorators:
  *
  * <ul>
- *     <li>{@link lombok.EqualsAndHashCode} - set {@code callSuper} to {@code true}</li>
  *     <li>
  *         {@link com.j256.ormlite.table.DatabaseTable} - set the {@code tableName} parameter to the name of the
  *         database table. This should be the same name of the class, but plural, lower case, and using camel case.
@@ -41,13 +44,14 @@ import java.util.Locale;
  *         constructor seems to be automatically created when extending this abstract class, so including it will cause
  *         compilation errors.
  *     </li>
- *     <li>{@link lombok.Data}</li>
+ *     <li>{@link lombok.Setter} and {@link lombok.Getter}</li>
  * </ul>
  *
- * <br>
+ * <br/>
  * A call number part can also have a parent part. For example, {@link Subdomain}'s parent part is {@link Domain}.
- * Establishing this relationship requires implementing the {@link HasParentPart} interface adding a few fields,
- * replacing "{parent_name}" where necessary. See {@link Subdomain} for an example of how this is done.
+ * Establishing this relationship requires implementing the {@link HasParentPart}{@code <{parent_name}>} interface
+ * adding a few fields, replacing "{parent_name}" where necessary. See {@link Subdomain} for an
+ * example of how this is done.
  *
  * <ul>
  *     <li>
@@ -67,6 +71,10 @@ import java.util.Locale;
  *     </li>
  * </ul>
  *
+ * <br/>
+ * A call number can also have a child part. If it does, implement the {@link HasChildPart} interface, replacing the
+ * generic type with the actual child type. Also, adding a {@code @}{@link com.j256.ormlite.field.ForeignCollectionField} for
+ * the children is helpful.
  */
 
 @Log4j2
@@ -90,15 +98,33 @@ public abstract class CallNumberPart {
 	@SuppressWarnings("unused")
 	public static String FIELD_NAME_NAME = "name";
 	
-	/// Does this part have a parent field?
+	/// Does this part have a parent field? This does not determine whether this part actually
+	/// *has* an assigned parent.
 	public boolean hasParent() {
 		return this instanceof HasParentPart<?>;
 	}
 	
-	/// Does this part have child model? This does not determine whether the child collection actually *has* any
-	/// children.
+	/// Does this part have child model? This does not determine whether the child collection
+	/// actually *has* any children.
 	public boolean hasChild() {
 		return this instanceof HasChildPart<?>;
+	}
+	
+	/**
+	 * Make sure this object is actually a CallNumberPart.
+	 * @param parent Object to test
+	 * @return The cast object, if it is of type CallNumberPart.
+	 */
+	private CallNumberPart requireCallNumberParent(Object parent) {
+		if (parent instanceof CallNumberPart cast_callNumberParent) {
+			return cast_callNumberParent;
+		}
+		
+		throw new IllegalStateException(String.format(
+				"%s has a parent of type %s, but CallNumberPart behavior is required here",
+				this.getClass().getSimpleName(),
+				parent == null ? "null" : parent.getClass().getName()
+		));
 	}
 	
 	public Element serialize(Document document) {
@@ -115,7 +141,9 @@ public abstract class CallNumberPart {
 		elPart.appendChild(elName);
 		
 		if (this.hasParent()) {
-			CallNumberPart parent = ((HasParentPart<?>) this).getParent();
+			CallNumberPart parent = requireCallNumberParent(
+					((HasParentPart<?>) this).getParent()
+			);
 			String parentClassName = ((HasParentPart<?>) this).getParentClass().getSimpleName();
 			
 			org.w3c.dom.Element elParent = document.createElement(parentClassName.toLowerCase(Locale.ROOT));
@@ -157,7 +185,7 @@ public abstract class CallNumberPart {
 			var thisParent = ((HasParentPart<?>) this).getParent();
 			var otherParent = ((HasParentPart<?>) other).getParent();
 			
-			if (!thisParent.equals(otherParent)) {
+			if (!Objects.equals(thisParent, otherParent)) {
 				var parent = ((HasParentPart<?>) other).getParent();
 				// Call the method accepting a raw, untyped parent, and let it handle type enforcement.
 				((HasParentPart<?>) this).setParentCast(parent);
@@ -168,7 +196,9 @@ public abstract class CallNumberPart {
 	/// Standard string, used primarily for logging.
 	public final String toString() {
 		if (hasParent()) {
-			var parent = ((HasParentPart<?>) this).getParent();
+			CallNumberPart parent = requireCallNumberParent(
+					((HasParentPart<?>) this).getParent()
+			);
 			Long parentId = parent.getId();
 			String parentIdField = String.format(
 					"%s_%s",
@@ -212,7 +242,7 @@ public abstract class CallNumberPart {
 			return getId().equals(that.getId())
 					&& getNumber().equals(that.getNumber())
 					&& getName().equals(that.getName())
-					&& thisParent.equals(otherParent);
+					&& Objects.equals(thisParent, otherParent);
 		} else {
 			return getId().equals(that.getId())
 					&& getNumber().equals(that.getNumber())
@@ -225,6 +255,9 @@ public abstract class CallNumberPart {
 		int result = Long.hashCode(getId());
 		result = 31 * result + getNumber().hashCode();
 		result = 31 * result + getName().hashCode();
+		if (this.hasParent()) {
+			result = 31 * result + ((CallNumberPart) ((HasParentPart<?>) this).getParent()).getId().hashCode();
+		}
 		return result;
 	}
 }

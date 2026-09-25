@@ -18,7 +18,7 @@ import lombok.*;
 @Getter @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class Domain extends CallNumberPart implements HasChildPart<Subdomain> {
+public class Domain extends CallNumberPart implements HasChildPart<Subdomain>, DomainLike {
 	@ForeignCollectionField
 	private ForeignCollection<Subdomain> subdomains;
 	public ForeignCollection<Subdomain> getChildCollection() { return subdomains; }

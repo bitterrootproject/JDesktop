@@ -32,12 +32,10 @@ public class Aspect extends CallNumberPart implements HasParentPart<Root>, HasCh
 	private Root root;
 	
 	public static String FIELD_NAME_ROOT = "root_id";
-	@SuppressWarnings("unused")
-	public static String FIELD_NAME_PARENT = Aspect.FIELD_NAME_ROOT;
 	
 	public @NonNull Root getParent() { return root; }
 	public void setParent(@NonNull Root root) { setRoot(root); }
-	public Class<Root> getParentClass() { return Root.class; }
+	public @NonNull Class<Root> getParentClass() { return Root.class; }
 	
 	// Child field
 	

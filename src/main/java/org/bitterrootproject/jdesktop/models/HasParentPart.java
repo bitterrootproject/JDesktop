@@ -3,7 +3,9 @@ package org.bitterrootproject.jdesktop.models;
 import org.jetbrains.annotations.ApiStatus;
 import org.jspecify.annotations.NonNull;
 
-public interface HasParentPart<T extends CallNumberPart> {
+import java.util.Locale;
+
+public interface HasParentPart<T> {
 	/**
 	 * Get the parent of this call number part. This is essentially just an alias to the part's actual getter for
 	 * the parent field.
@@ -13,9 +15,21 @@ public interface HasParentPart<T extends CallNumberPart> {
 	T getParent();
 	
 	/**
-	 * Get the child class of this parent part.
+	 * Get the child class of this part's parent.
 	 */
-	Class<T> getParentClass();
+	@NonNull
+	Class<? extends T> getParentClass();
+	
+	/**
+	 * Get the field name of this part's parent, i.e. 'domain_id'.
+	 */
+	@NonNull
+	default String getParentFieldName() {
+		return String.format(
+				"%s_id",
+				getParentClass().getSimpleName().toLowerCase(Locale.ROOT)
+		);
+	}
 	
 	/**
 	 * Set the parent of this call number part. This is essentially just an alias to the part's actual setter for
@@ -26,16 +40,19 @@ public interface HasParentPart<T extends CallNumberPart> {
 	
 	
 	/**
-	 * Set the parent of this part. <b><i>This method should be considered private</i></b> and an internal method, so
+	 * <b><i>INTERNAL METHOD</i></b>
+	 * <br/>
+	 *
+	 * Set the parent of this part. <i>This method should be considered private and an internal method</i>, so
 	 * don't call it unless you know you should be! In all other cases, you should be calling
-	 * {@link #setParent(CallNumberPart)}.
+	 * {@link #setParent(T)}.
 	 *
 	 * @param parent Untyped parent {@link Object} of this child part.
 	 * @throws ClassCastException If {@code parent} is not the right parent type.
 	 */
 	@ApiStatus.Internal
 	default void setParentCast(@NonNull Object parent) throws ClassCastException {
-		Class<T> parentClass = getParentClass();
+		Class<? extends T> parentClass = getParentClass();
 		
 		if (!parentClass.isInstance(parent)) {
 			throw new ClassCastException(

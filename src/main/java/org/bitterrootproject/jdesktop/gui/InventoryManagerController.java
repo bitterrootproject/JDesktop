@@ -228,7 +228,7 @@ public class InventoryManagerController implements Initializable {
 		
 		// If the selected part has a parent, load that info.
 		if (part.hasParent()) {
-			this.parentPart = ((HasParentPart<?>) part).getParent();
+			this.parentPart = (CallNumberPart) ((HasParentPart<?>) part).getParent();
 			log.info("Selected part '{}' has parent: {}", part, parentPart);
 			
 			parentNameNumberField.setText(parentPart.formatString());

@@ -19,7 +19,7 @@ import org.jspecify.annotations.NonNull;
 @Getter @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class Subdomain extends CallNumberPart implements HasParentPart<Domain> {
+public class Subdomain extends CallNumberPart implements HasParentPart<Domain>, DomainLike {
 	
 	@NonNull
 	@DatabaseField(
@@ -31,11 +31,9 @@ public class Subdomain extends CallNumberPart implements HasParentPart<Domain> {
 	private Domain domain;
 	
 	public static String FIELD_NAME_DOMAIN = "domain_id";
-	@SuppressWarnings("unused")
-	public static String FIELD_NAME_PARENT = Subdomain.FIELD_NAME_DOMAIN;
 	
 	@NonNull
 	public Domain getParent() { return domain; }
 	public void setParent(@NonNull Domain domain) { setDomain(domain); }
-	public Class<Domain> getParentClass() { return Domain.class; }
+	public @NonNull Class<Domain> getParentClass() { return Domain.class; }
 }
