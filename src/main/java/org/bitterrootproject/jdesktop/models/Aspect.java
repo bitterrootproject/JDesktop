@@ -1,21 +1,27 @@
 package org.bitterrootproject.jdesktop.models;
 
+import com.j256.ormlite.dao.ForeignCollection;
 import com.j256.ormlite.field.DatabaseField;
+import com.j256.ormlite.field.ForeignCollectionField;
 import com.j256.ormlite.table.DatabaseTable;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
+
+/**
+ * This is the fourth component of a call number. Many call numbers will have an aspect.
+ * <br>
+ * <b>Parent part:</b> {@link Root}
+ */
 
 @DatabaseTable(tableName = "aspects")
-@NoArgsConstructor
+
+@Getter @Setter
 @AllArgsConstructor
-public @Data class Aspect implements CallNumberPart {
+@NoArgsConstructor
+public class Aspect extends CallNumberPart implements HasParentPart<Root>, HasChildPart<Topic> {
 	
-	@DatabaseField(generatedId = true)
-	private long id;
-	
+	// Parent field
 	@DatabaseField(
 			foreign = true,
 			foreignAutoCreate = true,
@@ -23,13 +29,19 @@ public @Data class Aspect implements CallNumberPart {
 	)
 	private Root root;
 	
-	@DatabaseField(canBeNull = false)
-	private String number;
+	public static String FIELD_NAME_ROOT = "root_id";
+	@SuppressWarnings("unused")
+	public static String FIELD_NAME_PARENT = Aspect.FIELD_NAME_ROOT;
 	
-	@DatabaseField(canBeNull = false)
-	private String name;
+	public Root getParent() { return root; }
+	public void setParent(Root root) { setRoot(root); }
 	
-	public String toString() {
-		return String.format("%s - %s", this.number, this.name);
-	}
+	// Child field
+	
+	@ForeignCollectionField
+	private ForeignCollection<Topic> topics;
+	
+	public ForeignCollection<Topic> getChildCollection() { return topics; }
+	public Class<Topic> getChildClass() { return Topic.class; }
+	public int countChildren() { return topics.size(); }
 }

@@ -9,7 +9,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.skin.TableHeaderRow;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.bitterrootproject.jdesktop.DatabaseManager;
 import org.bitterrootproject.jdesktop.models.CallNumber;
 import org.bitterrootproject.jdesktop.models.CallNumberPart;
@@ -23,7 +23,7 @@ import java.util.ResourceBundle;
 /**
  * JavaFX controller class for the call number table browser.
  */
-@Slf4j
+@Log4j2
 public class CallNumberTableController implements Initializable {
 	/// The resolved resource URL to the FXML file for this class.
 	public static final URL RESOURCE = CallNumberTableController.class.getResource("CallNumberTableView.fxml");

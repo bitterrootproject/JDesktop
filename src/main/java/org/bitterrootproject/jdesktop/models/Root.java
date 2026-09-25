@@ -1,28 +1,28 @@
 package org.bitterrootproject.jdesktop.models;
 
-import com.j256.ormlite.field.DatabaseField;
+import com.j256.ormlite.dao.ForeignCollection;
+import com.j256.ormlite.field.ForeignCollectionField;
 import com.j256.ormlite.table.DatabaseTable;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
+
+/**
+ * This is the third component of a call number. Most (if not all) call numbers will have a root.
+ * <br>
+ * <b>Parent part:</b> none
+ */
 
 @DatabaseTable(tableName = "roots")
-@NoArgsConstructor
+
+@Getter @Setter
 @AllArgsConstructor
-public @Data class Root implements CallNumberPart {
+@NoArgsConstructor
+public class Root extends CallNumberPart implements HasChildPart<Aspect> {
+	@ForeignCollectionField
+	private ForeignCollection<Aspect> aspects;
 	
-	@DatabaseField(generatedId = true)
-	private long id;
-	
-	@DatabaseField(canBeNull = false)
-	private String number;
-	
-	@DatabaseField(canBeNull = false)
-	private String name;
-	
-	public String toString() {
-		return String.format("%s - %s", this.number, this.name);
-	}
+	public ForeignCollection<Aspect> getChildCollection() { return aspects; }
+	public Class<Aspect> getChildClass() { return Aspect.class; }
+	public int countChildren() { return aspects.size(); }
 }

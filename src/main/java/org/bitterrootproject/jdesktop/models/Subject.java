@@ -1,28 +1,27 @@
 package org.bitterrootproject.jdesktop.models;
 
-import com.j256.ormlite.field.DatabaseField;
+import com.j256.ormlite.dao.ForeignCollection;
+import com.j256.ormlite.field.ForeignCollectionField;
 import com.j256.ormlite.table.DatabaseTable;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
+
+/**
+ * This is the first component of a call number. All call numbers must have at least a subject.
+ * <br>
+ * <b>Parent part:</b> none.
+ */
 
 @DatabaseTable(tableName = "subjects")
-@NoArgsConstructor
+
+@Getter @Setter
 @AllArgsConstructor
-public @Data class Subject implements CallNumberPart {
-	
-	@DatabaseField(generatedId = true)
-	private long id;
-	
-	@DatabaseField(canBeNull = false)
-	private String number;
-	
-	@DatabaseField(canBeNull = false)
-	private String name;
-	
-	public String toString() {
-		return String.format("%s - %s", this.number, this.name);
-	}
+@NoArgsConstructor
+public class Subject extends CallNumberPart implements HasChildPart<Domain> {
+	@ForeignCollectionField
+	private ForeignCollection<Domain> domains;
+	public ForeignCollection<Domain> getChildCollection() { return domains; }
+	public Class<Domain> getChildClass() { return Domain.class; }
+	public int countChildren() { return domains.size(); }
 }

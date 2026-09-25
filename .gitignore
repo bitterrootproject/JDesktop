@@ -42,4 +42,5 @@ bin/
 .DS_Store
 
 ### Project ###
+dev-data/
 db.sqlite3

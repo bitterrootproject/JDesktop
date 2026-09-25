@@ -3,18 +3,21 @@ package org.bitterrootproject.jdesktop.models;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
+
+/**
+ * This is the second component of a call number. Most call numbers will have a domain.
+ * <br>
+ * <b>Parent part:</b> {@link Subject}
+ */
 
 @DatabaseTable(tableName = "domains")
-@NoArgsConstructor
+
+@Getter @Setter
 @AllArgsConstructor
-public @Data class Domain implements CallNumberPart {
-	
-	@DatabaseField(generatedId = true)
-	private long id;
+@NoArgsConstructor
+public class Domain extends CallNumberPart implements HasParentPart<Subject> {
 	
 	@DatabaseField(
 			foreign = true,
@@ -23,13 +26,11 @@ public @Data class Domain implements CallNumberPart {
 	)
 	private Subject subject;
 	
-	@DatabaseField(canBeNull = false)
-	private String number;
+	public static String FIELD_NAME_SUBJECT = "subject_id";
+	@SuppressWarnings("unused")
+	public static String FIELD_NAME_PARENT = Domain.FIELD_NAME_SUBJECT;
 	
-	@DatabaseField(canBeNull = false)
-	private String name;
+	public Subject getParent() { return subject; }
+	public void setParent(Subject subject) { setSubject(subject); }
 	
-	public String toString() {
-		return String.format("%s - %s", this.number, this.name);
-	}
 }

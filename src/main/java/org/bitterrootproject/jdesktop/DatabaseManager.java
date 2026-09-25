@@ -4,12 +4,11 @@ import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.table.TableUtils;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.bitterrootproject.jdesktop.models.*;
+import org.bitterrootproject.jdesktop.utils.EnvTools;
+import org.bitterrootproject.jdesktop.utils.FileManager;
 
-import java.io.IOException;
-import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
 
@@ -17,32 +16,24 @@ import java.sql.SQLException;
 /**
  * Database manager for the SQLite database used by Bitterroot JDesktop.
  */
-@Slf4j
+@Log4j2
 public final class DatabaseManager {
-	private static final String DATABASE_DRIVER = "org.sqlite.JDBC";
+	// private static final String DATABASE_DRIVER = "org.sqlite.JDBC";
 	
-	private static String getDatabaseUrl() {
-		String prefix = "jdbc:sqlite:";
-		Path path = FileManager.getAppDataDirectory().resolve("db.sqlite3");
-		
-		try {
-			if (!path.getParent().toFile().exists())
-				Files.createDirectories(path.getParent());
-		} catch (IOException e) {
-			log.error("Failed to create parent directories to the sqlite file", e);
+	/**
+	 * Get the String path to the database file.
+	 * @param local Store the database file in the repository. Useful for testing.
+	 * @return String path to the database file.
+	 */
+	private static String getDatabaseUrl(boolean local) {
+		if (local) {
+			return "jdbc:sqlite:dev-data/db.sqlite3";
+		} else {
+			String prefix = "jdbc:sqlite:";
+			Path path = FileManager.USER_DATA.resolve("db.sqlite3");
+			FileManager.createFileIfNotExists(path, true);
+			return prefix + path;
 		}
-		
-		
-		if (!path.toFile().exists()) {
-			try {
-				Files.createFile(path);
-			} catch (FileAlreadyExistsException ignored) {
-			} catch (IOException e) {
-				log.error("Failed to create new SQLite database file", e);
-			}
-		}
-		
-		return prefix + path;
 	}
 	
 	private static DatabaseManager INSTANCE;
@@ -72,7 +63,7 @@ public final class DatabaseManager {
 			TableUtils.createTableIfNotExists(connectionSource, CallNumber.class);
 		} catch (SQLException e) {
 			log.error("Failed to create a table.", e);
-			System.exit(1);
+			// System.exit(1);
 		}
 	}
 	
@@ -109,13 +100,12 @@ public final class DatabaseManager {
 				
 			} catch (SQLException e) {
 				log.error("Failed to initialize database manager.", e);
-				System.exit(1);
+				// System.exit(1);
 			} catch (Exception e) {
 				log.error("An unknown error occurred.", e);
-				System.exit(1);
+				// System.exit(1);
 			}
 		}
-		
 		return INSTANCE;
 	}
 	
@@ -125,8 +115,12 @@ public final class DatabaseManager {
 	 * @throws SQLException If a connection could not be made
 	 */
 	private static JdbcConnectionSource openConnection() throws SQLException {
-		// try {
-		return new JdbcConnectionSource(getDatabaseUrl());
+		boolean useLocalDb = EnvTools.getBoolean("DEV", false);
+		
+		var dbUrl = getDatabaseUrl(useLocalDb);
+		log.info("Using database: {}", dbUrl);
+		
+		return new JdbcConnectionSource(dbUrl);
 		// } catch (IOException e) {
 		// 	log.error("Failed to create or get database file.", e);
 		// 	System.exit(1);
@@ -134,41 +128,29 @@ public final class DatabaseManager {
 		// }
 	}
 	
+	/**
+	 * Get the DAO for the specified class name
+	 * @param partClassName Name of the class (in PascalCase)
+	 * @return The DAO for the specified class name
+	 */
+	public Dao<? extends CallNumberPart, Long> getDao(String partClassName) {
+		return switch (partClassName) {
+			case "Subject" -> this.subjects;
+			case "Domain" -> this.domains;
+			case "Root" -> this.roots;
+			case "Aspect" -> this.aspects;
+			case "Topic" -> this.topics;
+			case "AuthorPublisher" -> this.authorPublishers;
+			default -> null;
+		};
+	}
 	
-	public static void main(String[] args) {
-		System.out.println(System.getProperty( "javafx.runtime.version" ));
-	// 	try (JdbcConnectionSource connectionSource = new JdbcConnectionSource(DATABASE_URL)) {
-	// 		// initializeTables(connectionSource);
-	//
-	// 		// var subjectDao = Subject.createDao(connectionSource);
-	// 		// var domainDao = Domain.createDao(connectionSource);
-	// 		// var callNumberDao = CallNumber.createDao(connectionSource);
-	// 		//
-	// 		// subjectDao.queryForAll();
-	//
-	// 		// Subject subj = new Subject();
-	// 		// subj.setName("Linguistics");
-	// 		// subj.setNumber("LI");
-	// 		// subjectDao.create(subj);
-	// 		//
-	// 		// Domain dom = new Domain();
-	// 		// dom.setName("Literature");
-	// 		// dom.setNumber("LT");
-	// 		// dom.setSubject(subj);
-	// 		// domainDao.create(dom);
-	// 		//
-	// 		// CallNumber cn = new CallNumber();
-	// 		// cn.setSubject(subj);
-	// 		// cn.setDomain(dom);
-	// 		// callNumberDao.create(cn);
-	//
-	//
-	// 	} catch (SQLException e) {
-	// 		Logger.error(e, "A database operation failed.");
-	// 		System.exit(1);
-	// 	} catch (Exception e) {
-	// 		Logger.error(e, "An unexpected error occurred.");
-	// 		System.exit(1);
-	// 	}
+	/**
+	 * Get the DAO for the given class
+	 * @param partClass The actual class (not it's name or an instance)
+	 * @return The DAO for the given class
+	 */
+	public Dao<? extends CallNumberPart, Long> getDao(Class<? extends CallNumberPart> partClass) {
+		return getDao(partClass.getSimpleName());
 	}
 }

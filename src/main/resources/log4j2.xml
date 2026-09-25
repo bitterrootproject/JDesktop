@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xmlns="https://logging.apache.org/xml/ns"
+               xsi:schemaLocation="
+                       https://logging.apache.org/xml/ns
+                       log4j-config-2.xsd">
+
+  <Properties>
+    <!--
+      The `log.location` system property is unset until AppMain sets it, so nothing is allowed to use Log4j2 until
+      it's set. The actual location depends on whether it's running in dev mode, who the user is, and what
+      operating system this is running on.
+    -->
+    <Property name="log_location" value="${sys:log.location}" />
+    <Property name="max_count_logs" value="3" />
+    <Property name="log_pattern" value="%d{yyyy.MM.dd HH:mm:ss.SSS} [%p] %c %x %m%n" />
+  </Properties>
+
+  <Appenders>
+    <Console name="CONSOLE" target="SYSTEM_OUT" follow="true">
+      <PatternLayout pattern="${log_pattern}"/>
+    </Console>
+
+    <RollingFile name="App"
+                 fileName="${log_location}/app.log"
+                 filePattern="${log_location}/app.%i.log">
+      <PatternLayout pattern="${log_pattern}" />
+      <Policies>
+        <OnStartupTriggeringPolicy />
+      </Policies>
+      <DefaultRolloverStrategy max="${max_count_logs}" />
+    </RollingFile>
+
+    <RollingFile name="JavaFX"
+                 fileName="${log_location}/javafx.log"
+                 filePattern="${log_location}/javafx.%i.log">
+      <PatternLayout pattern="{$log_pattern}" />
+      <Policies>
+        <OnStartupTriggeringPolicy />
+      </Policies>
+      <DefaultRolloverStrategy max="${max_count_logs}" />
+    </RollingFile>
+
+    <RollingFile name="ORMLite"
+                 fileName="${log_location}/ormlite.log"
+                 filePattern="${log_location}/ormlite.%i.log">
+      <PatternLayout pattern="${log_pattern}" />
+      <Policies>
+        <OnStartupTriggeringPolicy />
+      </Policies>
+      <DefaultRolloverStrategy max="${max_count_logs}" />
+    </RollingFile>
+  </Appenders>
+
+
+  <Loggers>
+    <Logger name="org.bitterrootproject.jdesktop" level="DEBUG">
+      <AppenderRef ref="App" />
+    </Logger>
+
+    <Logger name="javafx" level="DEBUG">
+      <AppenderRef ref="JavaFX" />
+    </Logger>
+
+    <Logger name="com.j256.ormlite" level="DEBUG">
+      <AppenderRef ref="ORMLite" />
+    </Logger>
+
+    <Root level="INFO">
+      <AppenderRef ref="CONSOLE" level="INFO" />
+    </Root>
+  </Loggers>
+
+</Configuration>
