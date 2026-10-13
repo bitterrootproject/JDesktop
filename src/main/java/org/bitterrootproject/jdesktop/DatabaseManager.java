@@ -8,9 +8,7 @@ import lombok.extern.log4j.Log4j2;
 import org.bitterrootproject.jdesktop.models.*;
 import org.bitterrootproject.jdesktop.utils.EnvTools;
 import org.bitterrootproject.jdesktop.utils.FileManager;
-
 import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 
 import java.nio.file.Path;
 import java.sql.SQLException;
@@ -28,6 +26,7 @@ public final class DatabaseManager {
 	 * @param local Store the database file in the repository. Useful for testing.
 	 * @return String path to the database file.
 	 */
+	@NonNull
 	private static String getDatabaseUrl(boolean local) {
 		if (local) {
 			return "jdbc:sqlite:dev-data/db.sqlite3";
@@ -95,6 +94,7 @@ public final class DatabaseManager {
 	 * established or another error occurs, this function fails and exits(1).
 	 * @return The database manager singleton.
 	 */
+	@NonNull
 	public static DatabaseManager getInstance() {
 		if (INSTANCE == null) {
 			try (JdbcConnectionSource connectionSource = DatabaseManager.openConnection()) {
@@ -117,6 +117,7 @@ public final class DatabaseManager {
 	 * @return Database connection
 	 * @throws SQLException If a connection could not be made
 	 */
+	@NonNull
 	private static JdbcConnectionSource openConnection() throws SQLException {
 		boolean useLocalDb = EnvTools.getBoolean("DEV", false);
 		
@@ -136,7 +137,7 @@ public final class DatabaseManager {
 	 * @param partClassName Name of the class (in PascalCase)
 	 * @return The DAO for the specified class name
 	 */
-	@Nullable
+	@NonNull
 	public Dao<? extends CallNumberPart, Long> getPartDao(String partClassName) {
 		return switch (partClassName) {
 			case "Domain" -> this.domains;
@@ -145,7 +146,7 @@ public final class DatabaseManager {
 			case "Aspect" -> this.aspects;
 			case "Topic" -> this.topics;
 			case "AuthorPublisher" -> this.authorPublishers;
-			default -> null;
+			default -> throw new RuntimeException(String.format("No DAO associated with type '%s'", partClassName));
 		};
 	}
 	
@@ -154,6 +155,7 @@ public final class DatabaseManager {
 	 * @param partClass The actual class (not it's name or an instance)
 	 * @return The DAO for the given class
 	 */
+	@NonNull
 	public Dao<? extends CallNumberPart, Long> getPartDao(Class<? extends CallNumberPart> partClass) {
 		return getPartDao(partClass.getSimpleName());
 	}

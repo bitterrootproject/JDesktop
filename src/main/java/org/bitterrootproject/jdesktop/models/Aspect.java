@@ -4,8 +4,10 @@ import com.j256.ormlite.dao.ForeignCollection;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.field.ForeignCollectionField;
 import com.j256.ormlite.table.DatabaseTable;
-
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.jspecify.annotations.NonNull;
 // import org.jspecify.annotations.NonNull;
 
@@ -21,7 +23,7 @@ import org.jspecify.annotations.NonNull;
 @Getter @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class Aspect extends CallNumberPart implements HasParentPart<Root>, HasChildPart<Topic> {
+public class Aspect extends CallNumberPart implements HasParentPart<Domain>, HasChildPart<Topic> {
 	
 	// Parent field
 	@DatabaseField(
@@ -29,13 +31,21 @@ public class Aspect extends CallNumberPart implements HasParentPart<Root>, HasCh
 			foreignAutoCreate = true,
 			foreignAutoRefresh = true
 	)
-	private Root root;
+	private Domain domain;
 	
-	public static String FIELD_NAME_ROOT = "root_id";
+	public static String FIELD_NAME_DOMAIN = "domain_id";
 	
-	public @NonNull Root getParent() { return root; }
-	public void setParent(@NonNull Root root) { setRoot(root); }
-	public @NonNull Class<Root> getParentClass() { return Root.class; }
+	public @NonNull Domain getParent() {
+		return domain;
+	}
+	
+	public void setParent(@NonNull Domain root) {
+		setDomain(root);
+	}
+	
+	public @NonNull Class<Domain> getParentClass() {
+		return Domain.class;
+	}
 	
 	// Child field
 	

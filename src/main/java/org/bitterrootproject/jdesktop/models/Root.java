@@ -1,15 +1,14 @@
 package org.bitterrootproject.jdesktop.models;
 
-import com.j256.ormlite.dao.ForeignCollection;
 import com.j256.ormlite.field.DatabaseField;
-import com.j256.ormlite.field.ForeignCollectionField;
 import com.j256.ormlite.table.DatabaseTable;
-
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.extern.log4j.Log4j2;
-
-import org.jspecify.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 
 /**
@@ -23,7 +22,7 @@ import org.jspecify.annotations.NonNull;
 @Getter @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class Root extends CallNumberPart implements HasChildPart<Aspect>, HasParentPart<DomainLike> {
+public class Root extends CallNumberPart implements HasParentPart<DomainLike> {
 	
 	// Parent: Domain xor Subdomain
 	@Nullable
@@ -42,23 +41,28 @@ public class Root extends CallNumberPart implements HasChildPart<Aspect>, HasPar
 			foreignAutoRefresh = true
 	)
 	private Subdomain subdomain;
-	public static String FIELD_NAME_SUBDOMAIN = "domain_id";
+	public static String FIELD_NAME_SUBDOMAIN = "subdomain_id";
 	
 	
-	private Class<? extends DomainLike> parentClass;
+	@NonNull
+	public Class<? extends DomainLike> getParentClass() {
+		return getParent().getClass();
+	}
 	
 	
 	public void setParent(@NonNull DomainLike part) {
+		if (part == null) {
+			throw new IllegalArgumentException("part must not be null");
+		}
+		
 		var partClass = part.getClass();
 		
 		if (partClass.equals(Domain.class)) {
 			this.domain = (Domain) part;
 			this.subdomain = null;
-			this.parentClass = Domain.class;
 		} else if (partClass.equals(Subdomain.class)) {
 			this.domain = null;
 			this.subdomain = (Subdomain) part;
-			this.parentClass = Subdomain.class;
 		} else {
 			throw new IllegalArgumentException(String.format(
 					"Roots do not support setting %s as the parent type",
@@ -80,13 +84,4 @@ public class Root extends CallNumberPart implements HasChildPart<Aspect>, HasPar
 			);
 		}
 	}
-	
-	
-	// Child: Aspect
-	@ForeignCollectionField
-	private ForeignCollection<Aspect> aspects;
-	
-	public ForeignCollection<Aspect> getChildCollection() { return aspects; }
-	public Class<Aspect> getChildClass() { return Aspect.class; }
-	public int countChildren() { return aspects.size(); }
 }

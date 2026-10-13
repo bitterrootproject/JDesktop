@@ -1,0 +1,126 @@
+name: JPackage - macOS, Windows, Debian, Fedora
+on:
+  workflow_dispatch: {}
+
+jobs:
+  jpackage:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-24.04
+          - ubuntu-24.04-arm
+          - windows-latest
+          - windows-11-arm
+          - macos-26
+#        include:
+#          - fakeroot: true
+#            os: ubuntu-24.04
+#          - fakeroot: true
+#            os: ubuntu-24.04
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      # MUST come before any JS action (checkout, setup-node, cache, ...)
+      - name: Install node (workaround for act)
+        if: ${{ env.ACT && ( matrix.os == 'ubuntu-24.04' || matrix.os == 'ubuntu-24.04-arm' ) }}          # only when running under nektos/act
+        run: dnf install -y nodejs tar
+
+      - name: Install fakeroot (required for JPackage on Ubuntu)
+        if: ${{ matrix.os == 'ubuntu-24.04' || matrix.os == 'ubuntu-24.04-arm' }}
+        run: |
+          apt-get update
+          apt-get install -y fakeroot rpm
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.JS (required by later actions)
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build with Gradle
+        run: ./gradlew jpackage
+
+      - name: Zip build
+        run: tar -czvf ./JDesktop_${{ matrix.os }}.tar.gz ./build/jpackage/*
+
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v4
+        with:
+          name: JDesktop_${{ matrix.os }}.tar.gz
+          path: ./JDesktop_${{ matrix.os }}.tar.gz
+
+
+#  jpackage-fedora:
+#    strategy:
+#      matrix:
+#        os:
+#          - ubuntu-24.04
+#          - ubuntu-24.04-arm
+#
+#    runs-on: ${{ matrix.os }}
+#    container:
+#      image: fedora:44
+#      options: --security-opt seccomp=unconfined
+#
+#
+#    steps:
+#      # MUST come before any JS action (checkout, setup-node, cache, ...)
+#      - name: Install node (workaround for act)
+#        if: ${{ env.ACT }}          # only when running under nektos/act
+#        run: dnf install -y nodejs tar
+#
+#      - name: Install JPackage dependencies
+#        run: dnf install -y binutils rpm-build
+#
+#      - name: Checkout repository
+#        uses: actions/checkout@v6
+#
+#      - uses: actions/setup-node@v7
+##        with:
+##          node-version: 24
+#
+#      - name: Setup Java 21
+#        uses: actions/setup-java@v5
+#        with:
+#          distribution: temurin
+#          java-version: 21
+#
+#      - name: Setup Gradle
+#        uses: gradle/actions/setup-gradle@v6
+#
+#      - name: Build with Gradle
+#        run: ./gradlew jpackage
+
+
+#name: Build
+#
+#on:
+#  push:
+#
+#jobs:
+#  build:
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Checkout sources
+#        uses: actions/checkout@v6
+#      - name: Setup Java
+#        uses: actions/setup-java@v5
+#        with:
+#          distribution: 'temurin'
+#          java-version: 17
+#      - name: Setup Gradle
+#        uses: gradle/actions/setup-gradle@v6
+#      - name: Build with Gradle
+#        run: ./gradlew build

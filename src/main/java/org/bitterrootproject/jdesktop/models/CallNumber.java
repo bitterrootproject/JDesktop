@@ -1,5 +1,6 @@
 package org.bitterrootproject.jdesktop.models;
 
+import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
@@ -77,32 +78,31 @@ public @Data class CallNumber {  // the @Data decorator is also Lombok magic: ht
 	private AuthorPublisher authorPublisher;
 	
 	@Nullable
-	@DatabaseField(
-			foreign = true,
-			foreignAutoCreate = true,
-			foreignAutoRefresh = true
-	)
+	@DatabaseField
 	private String indicator;
 	
 	
 	// Use something like https://github.com/datazuul/iso-639-javalib?
 	@Nullable
-	@DatabaseField
+	@DatabaseField(dataType = DataType.STRING)
 	private String language;
 	
 	
 	@NonNull
 	@Getter(AccessLevel.PRIVATE)
 	@Setter(AccessLevel.PRIVATE)
-	@DatabaseField(canBeNull = false)
+	@DatabaseField(canBeNull = false, dataType = DataType.SERIALIZABLE)
 	private HashMap<String, String> metadata = new HashMap<>();
+	
 	public void setMetadata(String key, String value) {
 		metadata.put(key, value);
 	}
+	
 	@Nullable
 	public String getMetadata(String key) {
 		return metadata.get(key);
 	}
+	
 	public boolean hasMetadataKey(String key) {
 		return metadata.containsKey(key);
 	}

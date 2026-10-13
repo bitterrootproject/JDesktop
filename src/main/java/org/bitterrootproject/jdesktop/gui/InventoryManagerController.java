@@ -4,34 +4,28 @@ package org.bitterrootproject.jdesktop.gui;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.stmt.PreparedQuery;
 import com.j256.ormlite.stmt.QueryBuilder;
+import javafx.animation.PauseTransition;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.property.ListProperty;
 import javafx.beans.property.SimpleListProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
-import javafx.event.ActionEvent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.util.Callback;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
-
-import javafx.animation.PauseTransition;
+import javafx.util.Callback;
 import javafx.util.Duration;
-
-
 import lombok.extern.log4j.Log4j2;
-
 import org.apache.commons.lang3.StringUtils;
 import org.bitterrootproject.jdesktop.DatabaseManager;
-import org.bitterrootproject.jdesktop.utils.GuiTools;
 import org.bitterrootproject.jdesktop.models.*;
-
-import javafx.scene.input.MouseEvent;
-
+import org.bitterrootproject.jdesktop.utils.GuiTools;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -198,7 +192,6 @@ public class InventoryManagerController implements Initializable {
 		
 		
 		loadDomains();
-		loadRoots();
 		loadAuthorPublishers();
 	}
 	
@@ -221,6 +214,8 @@ public class InventoryManagerController implements Initializable {
 	private void selectPartForEditing(@NonNull CallNumberPart part) {
 		this.creatingNewPart = false;
 		this.selectedPart = part;
+		labelSaveStatus.setText("");
+		labelSaveStatus.setTextFill(Color.BLACK);
 		labelEditCallNumberPart.setText(String.format("Edit %s", part.getClass().getSimpleName()));
 		log.info("Selected part: {}", part);
 		
@@ -400,8 +395,11 @@ public class InventoryManagerController implements Initializable {
 			case "Domain" -> {
 				log.debug("Decided to reload domains");
 				loadDomains();
-				listDomain.getSelectionModel().select((Domain) lastSavedPart);
+				var last = (Domain) lastSavedPart;
+				listDomain.getSelectionModel().select(last);
 				loadSubdomains((Domain) lastSavedPart);
+				loadRoots(last);
+				loadAspects(last);
 			}
 			case "Subdomain" -> {
 				Domain domain = ((Subdomain) lastSavedPart).getDomain();
@@ -410,16 +408,21 @@ public class InventoryManagerController implements Initializable {
 				listSubdomain.getSelectionModel().select((Subdomain) lastSavedPart);
 			}
 			case "Root" -> {
-				log.debug("Decided to reload roots");
-				loadRoots();
+				DomainLike parent = ((Root) lastSavedPart).getParent();
+				log.debug(
+						"Decided to reload roots with parent {} {}",
+						((Root) lastSavedPart).getParentFieldName(),
+						parent.getId()
+				);
+				loadRoots(parent);
+				
 				listRoot.getSelectionModel().select((Root) lastSavedPart);
-				loadAspects((Root) lastSavedPart);
-				loadTopics(null);
+				// loadTopics(null);
 			}
 			case "Aspect" -> {
-				Root root = ((Aspect) lastSavedPart).getRoot();
-				log.debug("Decided to reload aspects with parent root_id {}", root.getId());
-				loadAspects(root);
+				Domain domain = ((Aspect) lastSavedPart).getDomain();
+				log.debug("Decided to reload aspects with parent domain_id {}", domain.getId());
+				loadAspects(domain);
 				listAspect.getSelectionModel().select((Aspect) lastSavedPart);
 				loadTopics((Aspect) lastSavedPart);
 			}
@@ -714,10 +717,18 @@ public class InventoryManagerController implements Initializable {
 		}
 	}
 	
-	private void loadRoots() {
+	/**
+	 * Get the roots with the specified parent {@link Domain}. To unload roots, call {@code allRoots.clear()}.
+	 *
+	 * @param parentDomain The parent {@link Domain} used to select roots.
+	 */
+	private void loadRoots(@NonNull Domain parentDomain) {
 		try {
-			var roots = dbManager.roots.queryForAll();
-			allRoots.set(FXCollections.observableList(roots));
+			QueryBuilder<Root, Long> queryBuilder = dbManager.roots.queryBuilder();
+			queryBuilder.where().eq(Root.FIELD_NAME_DOMAIN, parentDomain.getId());
+			PreparedQuery<Root> preparedQuery = queryBuilder.prepare();
+			ObservableList<Root> items = FXCollections.observableList(dbManager.roots.query(preparedQuery));
+			allRoots.set(items);
 
 		} catch (SQLException e) {
 			log.error("Failed to get roots", e);
@@ -725,19 +736,48 @@ public class InventoryManagerController implements Initializable {
 		}
 	}
 	
-	private void loadAspects(@Nullable Root parentRoot) {
-		if (parentRoot == null) {
+	/**
+	 * Get the roots with the specified parent {@link Subdomain}. To unload roots, call {@code allRoots.clear()}.
+	 *
+	 * @param parentSubdomain The parent {@link Subdomain} used to select roots.
+	 */
+	private void loadRoots(@NonNull Subdomain parentSubdomain) {
+		try {
+			QueryBuilder<Root, Long> queryBuilder = dbManager.roots.queryBuilder();
+			queryBuilder.where().eq(Root.FIELD_NAME_SUBDOMAIN, parentSubdomain.getId());
+			PreparedQuery<Root> preparedQuery = queryBuilder.prepare();
+			ObservableList<Root> items = FXCollections.observableList(dbManager.roots.query(preparedQuery));
+			allRoots.set(items);
+			
+		} catch (SQLException e) {
+			log.error("Failed to get roots", e);
+			allRoots.clear();
+		}
+	}
+	
+	private void loadRoots(@NonNull DomainLike parent) {
+		if (parent.getClass() == Domain.class) {
+			Domain domain = (Domain) parent;
+			loadRoots(domain);
+		} else if (parent.getClass() == Subdomain.class) {
+			Subdomain subdomain = (Subdomain) parent;
+			loadRoots(subdomain);
+		}
+	}
+	
+	private void loadAspects(@Nullable Domain parentDomain) {
+		if (parentDomain == null) {
 			allAspects.clear();
 		} else {
 			try {
 				QueryBuilder<Aspect, Long> queryBuilder = dbManager.aspects.queryBuilder();
-				queryBuilder.where().eq(Aspect.FIELD_NAME_ROOT, parentRoot.getId());
+				queryBuilder.where().eq(Aspect.FIELD_NAME_DOMAIN, parentDomain.getId());
 				PreparedQuery<Aspect> preparedQuery = queryBuilder.prepare();
 				ObservableList<Aspect> items = FXCollections.observableList(dbManager.aspects.query(preparedQuery));
 				allAspects.set(items);
-
+				
 			} catch (SQLException e) {
-				log.error("Failed to query aspects with parent root id '{}'", parentRoot.getId(), e);
+				log.error("Failed to query aspects with parent domain id '{}'", parentDomain.getId(), e);
 				allAspects.clear();
 			}
 		}
@@ -789,6 +829,8 @@ public class InventoryManagerController implements Initializable {
 		// this func also sets `selectedPart`
 		
 		loadSubdomains(selectedDomain);
+		loadRoots(selectedDomain);
+		loadAspects(selectedDomain);
 	}
 	
 	@FXML
@@ -805,6 +847,8 @@ public class InventoryManagerController implements Initializable {
 		
 		selectPartForEditing(selectedSubdomain);
 		// this func also sets `selectedPart`
+		
+		loadRoots(selectedSubdomain);
 	}
 	
 	@FXML
@@ -818,8 +862,6 @@ public class InventoryManagerController implements Initializable {
 		}
 		
 		selectPartForEditing(selectedRoot);
-		
-		loadAspects(selectedRoot);
 	}
 	
 	@FXML
@@ -893,7 +935,14 @@ public class InventoryManagerController implements Initializable {
 		event.consume();
 		log.debug("Button clicked: new root");
 		
-		prepareEditPaneForNewPart(null, Root.class);
+		if (selectedPart.getClass() == Domain.class) {
+			prepareEditPaneForNewPart(listDomain.getSelectionModel().getSelectedItem(), Root.class);
+		} else if (selectedPart.getClass() == Subdomain.class) {
+			prepareEditPaneForNewPart(listSubdomain.getSelectionModel().getSelectedItem(), Root.class);
+		} else {
+			throw new RuntimeException("Root's parent is not Domain or Subdomain, is "
+					                           + selectedPart.getClass().getSimpleName());
+		}
 		
 		selectedPartNameField.requestFocus();
 	}
@@ -903,7 +952,7 @@ public class InventoryManagerController implements Initializable {
 		event.consume();
 		log.debug("Button clicked: new aspect");
 		
-		prepareEditPaneForNewPart(listRoot.getSelectionModel().getSelectedItem(), Aspect.class);
+		prepareEditPaneForNewPart(listDomain.getSelectionModel().getSelectedItem(), Aspect.class);
 		
 		selectedPartNameField.requestFocus();
 	}
@@ -913,9 +962,18 @@ public class InventoryManagerController implements Initializable {
 		event.consume();
 		log.debug("Button clicked: new topic");
 		
-		prepareEditPaneForNewPart(listAspect.getSelectionModel().getSelectedItem(), Topic.class);
+		var selected = listAspect.getSelectionModel().getSelectedItem();
+		if (selected != null) {
+			prepareEditPaneForNewPart(selected, Topic.class);
+			selectedPartNameField.requestFocus();
+		} else {
+			Alert alert = new Alert(Alert.AlertType.ERROR);
+			alert.setHeaderText(null);
+			alert.setTitle("Topic creation failed");
+			alert.setContentText("You have to select an aspect before you can create a topic.");
+			alert.showAndWait();
+		}
 		
-		selectedPartNameField.requestFocus();
 	}
 	
 	@FXML
@@ -990,9 +1048,16 @@ public class InventoryManagerController implements Initializable {
 			return;
 		}
 		
+		var parentClass = selectedRoot.getParentClass();
+		
 		if (safelyDeletePart(selectedRoot)) {
-			loadRoots();
-			loadAspects(null);
+			if (parentClass == Domain.class) {
+				loadRoots(listDomain.getSelectionModel().getSelectedItem());
+			} else if (parentClass == Subdomain.class) {
+				loadRoots(listSubdomain.getSelectionModel().getSelectedItem());
+			} else {
+				throw new RuntimeException("Somehow this root's parent isn't domain or subdomain, it's " + parentClass.getSimpleName());
+			}
 		}
 	}
 	
@@ -1007,7 +1072,7 @@ public class InventoryManagerController implements Initializable {
 		}
 		
 		if (safelyDeletePart(selectedAspect)) {
-			loadAspects(listRoot.getSelectionModel().getSelectedItem());
+			loadAspects(listDomain.getSelectionModel().getSelectedItem());
 			loadTopics(null);
 		}
 	}

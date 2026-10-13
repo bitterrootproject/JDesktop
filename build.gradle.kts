@@ -113,6 +113,9 @@ dependencies {
     // XML parsing
     //implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.22.2")
 
+    // Minimal JSON support
+//    implementation("org.json:json:20260814")
+
 
     // Extra helpful stuff
     implementation("org.apache.commons:commons-lang3:3.20.0")
@@ -160,9 +163,12 @@ jlink {
 ////            "--name", "JDesktop"
 //        ]
         mainClass = globalMainClassFQ
-        icon = when {
-            osType == OsType.MAC -> "src/main/resources/org/bitterrootproject/jdesktop/mac-icon.icns"
-            else -> ""
+        icon = when (osType) {
+            OsType.MAC -> "src/main/resources/org/bitterrootproject/jdesktop/icon-mac.icns"
+            OsType.WINDOWS -> "src/main/resources/org/bitterrootproject/jdesktop/icon-win.ico"
+            OsType.LINUX, OsType.UNIX -> "src/main/resources/org/bitterrootproject/jdesktop/icon-linux.png"
+            // default to PNG if OS type other or unknown
+            else -> "src/main/resources/org/bitterrootproject/jdesktop/icon-linux.png"
         }
 //        description = "Bitterroot Project JDesktop"
 //        vendor = "Bitterroot Project"

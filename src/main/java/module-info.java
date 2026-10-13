@@ -27,6 +27,7 @@ module org.bitterrootproject.jdesktop {
 	// Logging
 	requires org.apache.logging.log4j.core;
 	requires org.apache.logging.log4j;
+	// requires org.json;
 	
 	// requires java.desktop;
 	
