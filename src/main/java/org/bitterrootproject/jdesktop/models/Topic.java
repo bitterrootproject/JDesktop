@@ -4,6 +4,7 @@ import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
 import lombok.*;
+import org.jspecify.annotations.NonNull;
 
 
 /**
@@ -27,10 +28,8 @@ public class Topic extends CallNumberPart implements HasParentPart<Aspect> {
 	private Aspect aspect;
 	
 	public static String FIELD_NAME_ASPECT = "aspect_id";
-	@SuppressWarnings("unused")
-	public static String FIELD_NAME_PARENT = Topic.FIELD_NAME_ASPECT;
 	
-	public Aspect getParent() { return aspect; }
-	public void setParent(Aspect aspect) { setAspect(aspect); }
-	
+	public @NonNull Aspect getParent() { return aspect; }
+	public void setParent(@NonNull Aspect aspect) { setAspect(aspect); }
+	public @NonNull Class<Aspect> getParentClass() { return Aspect.class; }
 }

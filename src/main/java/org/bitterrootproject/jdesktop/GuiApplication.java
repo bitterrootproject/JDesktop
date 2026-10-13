@@ -12,8 +12,6 @@ import org.apache.logging.log4j.Logger;
 import org.bitterrootproject.jdesktop.gui.InventoryManagerController;
 import org.bitterrootproject.jdesktop.utils.GuiTools;
 
-import java.io.IOException;
-
 @Log4j2
 public class GuiApplication extends Application {
 	

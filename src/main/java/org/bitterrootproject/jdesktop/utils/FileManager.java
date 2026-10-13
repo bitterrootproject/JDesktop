@@ -2,7 +2,7 @@ package org.bitterrootproject.jdesktop.utils;
 
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.SystemUtils;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
@@ -40,7 +40,7 @@ public enum FileManager {
 	 * @return The absolute {@link Path} of the chosen enum member
 	 * @see <a href="https://github.com/harawata/appdirs/tree/master">net.harawata.appdirs</a>
 	 */
-	@NotNull
+	@NonNull
 	public Path getPath() {
 		switch (context) {
 			case DEV -> {
@@ -73,7 +73,7 @@ public enum FileManager {
 	/**
 	 * Get the String representation of the underlying {@link Path} object.
 	 */
-	@NotNull
+	@NonNull
 	public String getString() {
 		return getPath().toString();
 	}
@@ -96,7 +96,7 @@ public enum FileManager {
 	 * @return The {@link Path} to the project root
 	 * @throws RuntimeException if project root cannot be found
 	 */
-	@NotNull
+	@NonNull
 	private static Path findProjectRoot() {
 		Path currentDir = Path.of(System.getProperty("user.dir"));
 		Path searchDir = currentDir;
@@ -120,14 +120,14 @@ public enum FileManager {
 	}
 	
 	/// @see Path#resolve(String)
-	@NotNull
-	public Path resolve(@NotNull String other) {
+	@NonNull
+	public Path resolve(@NonNull String other) {
 		return this.getPath().resolve(other);
 	}
 	
 	/// @see Path#resolve(Path)
-	@NotNull
-	public Path resolve(@NotNull Path other) {
+	@NonNull
+	public Path resolve(@NonNull Path other) {
 		return this.getPath().resolve(other);
 	}
 	

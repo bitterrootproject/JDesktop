@@ -4,35 +4,30 @@ package org.bitterrootproject.jdesktop.gui;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.stmt.PreparedQuery;
 import com.j256.ormlite.stmt.QueryBuilder;
+import javafx.animation.PauseTransition;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.property.ListProperty;
 import javafx.beans.property.SimpleListProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
-import javafx.event.ActionEvent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.util.Callback;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
-
-import javafx.animation.PauseTransition;
+import javafx.util.Callback;
 import javafx.util.Duration;
-
-
 import lombok.extern.log4j.Log4j2;
-
 import org.apache.commons.lang3.StringUtils;
 import org.bitterrootproject.jdesktop.DatabaseManager;
-import org.bitterrootproject.jdesktop.utils.GuiTools;
 import org.bitterrootproject.jdesktop.models.*;
-
-import javafx.scene.input.MouseEvent;
-
-import org.jetbrains.annotations.*;
+import org.bitterrootproject.jdesktop.utils.GuiTools;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -56,10 +51,10 @@ public class InventoryManagerController implements Initializable {
 	
 	// Filter fields
 	@FXML
-	private TextField textFieldFilterSubject;
+	private TextField textFieldFilterDomain;
 	
 	@FXML
-	private TextField textFieldFilterDomain;
+	private TextField textFieldFilterSubdomain;
 	
 	@FXML
 	private TextField textFieldFilterRoot;
@@ -94,14 +89,14 @@ public class InventoryManagerController implements Initializable {
 	
 	// List views
 	@FXML
-	private ListView<Subject> listSubject;
-	private final ListProperty<Subject> filteredSubjects = new SimpleListProperty<>();
-	private final ListProperty<Subject> allSubjects = new SimpleListProperty<>();
-	
-	@FXML
 	private ListView<Domain> listDomain;
 	private final ListProperty<Domain> filteredDomains = new SimpleListProperty<>();
 	private final ListProperty<Domain> allDomains = new SimpleListProperty<>();
+	
+	@FXML
+	private ListView<Subdomain> listSubdomain;
+	private final ListProperty<Subdomain> filteredSubdomains = new SimpleListProperty<>();
+	private final ListProperty<Subdomain> allSubdomains = new SimpleListProperty<>();
 	
 	@FXML
 	private ListView<Root> listRoot;
@@ -166,8 +161,8 @@ public class InventoryManagerController implements Initializable {
 	
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
-		listSubject.setCellFactory(new CallNumberPartCellFactory<>());
 		listDomain.setCellFactory(new CallNumberPartCellFactory<>());
+		listSubdomain.setCellFactory(new CallNumberPartCellFactory<>());
 		listRoot.setCellFactory(new CallNumberPartCellFactory<>());
 		listAspect.setCellFactory(new CallNumberPartCellFactory<>());
 		listTopic.setCellFactory(new CallNumberPartCellFactory<>());
@@ -180,24 +175,23 @@ public class InventoryManagerController implements Initializable {
 		this.dbManager = DatabaseManager.getInstance();
 		
 		// Set the collections to monitor
-		listSubject.setItems(filteredSubjects);
 		listDomain.setItems(filteredDomains);
+		listSubdomain.setItems(filteredSubdomains);
 		listRoot.setItems(filteredRoots);
 		listAspect.setItems(filteredAspects);
 		listTopic.setItems(filteredTopics);
 		listAuthorPublisher.setItems(filteredAuthorPublishers);
 
 		// Bind the filter field to the collections
-		filteredSubjects.bind(createFilterBinding(textFieldFilterSubject, allSubjects));
 		filteredDomains.bind(createFilterBinding(textFieldFilterDomain, allDomains));
+		filteredSubdomains.bind(createFilterBinding(textFieldFilterSubdomain, allSubdomains));
 		filteredRoots.bind(createFilterBinding(textFieldFilterRoot, allRoots));
 		filteredAspects.bind(createFilterBinding(textFieldFilterAspect, allAspects));
 		filteredTopics.bind(createFilterBinding(textFieldFilterTopic, allTopics));
 		filteredAuthorPublishers.bind(createFilterBinding(textFieldFilterAuthorPublisher, allAuthorPublishers));
 		
 		
-		loadSubjects();
-		loadRoots();
+		loadDomains();
 		loadAuthorPublishers();
 	}
 	
@@ -217,9 +211,11 @@ public class InventoryManagerController implements Initializable {
 	 * Select this part for editing, and display its child parts. Also sets {@link #selectedPart} to the specified {@code part}.
 	 * @param part The part object to bring into the editor pane
 	 */
-	private void selectPartForEditing(@NotNull CallNumberPart part) {
+	private void selectPartForEditing(@NonNull CallNumberPart part) {
 		this.creatingNewPart = false;
 		this.selectedPart = part;
+		labelSaveStatus.setText("");
+		labelSaveStatus.setTextFill(Color.BLACK);
 		labelEditCallNumberPart.setText(String.format("Edit %s", part.getClass().getSimpleName()));
 		log.info("Selected part: {}", part);
 		
@@ -227,7 +223,7 @@ public class InventoryManagerController implements Initializable {
 		
 		// If the selected part has a parent, load that info.
 		if (part.hasParent()) {
-			this.parentPart = ((HasParentPart<?>) part).getParent();
+			this.parentPart = (CallNumberPart) ((HasParentPart<?>) part).getParent();
 			log.info("Selected part '{}' has parent: {}", part, parentPart);
 			
 			parentNameNumberField.setText(parentPart.formatString());
@@ -249,7 +245,7 @@ public class InventoryManagerController implements Initializable {
 	 * @param parentPart The parent object of the part-to-be.
 	 * @param childPartClass The class of the child part, i.e. the one being created in the edit pane
 	 */
-	private void prepareEditPaneForNewPart(@Nullable CallNumberPart parentPart, @NotNull Class<? extends CallNumberPart> childPartClass) {
+	private void prepareEditPaneForNewPart(@Nullable CallNumberPart parentPart, @NonNull Class<? extends CallNumberPart> childPartClass) {
 		creatingNewPart = true;
 		labelEditCallNumberPart.setText(String.format("Creating new %s", childPartClass.getSimpleName()));
 		log.info("Creating new child part of type '{}' with parent '{}'", childPartClass.getSimpleName(), parentPart);
@@ -313,7 +309,7 @@ public class InventoryManagerController implements Initializable {
 				
 				log.debug("Attempting to cast the DAO to be able to use it (create).");
 				@SuppressWarnings("unchecked")
-				Dao<CallNumberPart, Long> typedDao = (Dao<CallNumberPart, Long>) dbManager.getDao(newPartClass);
+				Dao<CallNumberPart, Long> typedDao = (Dao<CallNumberPart, Long>) dbManager.getPartDao(newPartClass);
 				
 				try {
 					typedDao.create(newPart);
@@ -363,7 +359,7 @@ public class InventoryManagerController implements Initializable {
 			
 			log.debug("Attempting to cast the DAO to be able to use it (edit).");
 			@SuppressWarnings("unchecked")
-			Dao<CallNumberPart, Long> typedDao = (Dao<CallNumberPart, Long>) dbManager.getDao(this.selectedPart.getClass());
+			Dao<CallNumberPart, Long> typedDao = (Dao<CallNumberPart, Long>) dbManager.getPartDao(this.selectedPart.getClass());
 			
 			try {
 				typedDao.update(this.selectedPart);
@@ -396,29 +392,37 @@ public class InventoryManagerController implements Initializable {
 		
 		// Reload the list of parts that just had a part saved or created
 		switch (lastSavedPartClassName) {
-			case "Subject" -> {
-				log.debug("Decided to reload subjects");
-				loadSubjects();
-				listSubject.getSelectionModel().select((Subject) lastSavedPart);
-				loadDomains((Subject) lastSavedPart);
-			}
 			case "Domain" -> {
-				Subject subject = ((Domain) lastSavedPart).getSubject();
-				log.debug("Decided to reload domains with parent subject_id {}", subject.getId());
-				loadDomains(subject);
-				listDomain.getSelectionModel().select((Domain) lastSavedPart);
+				log.debug("Decided to reload domains");
+				loadDomains();
+				var last = (Domain) lastSavedPart;
+				listDomain.getSelectionModel().select(last);
+				loadSubdomains((Domain) lastSavedPart);
+				loadRoots(last);
+				loadAspects(last);
+			}
+			case "Subdomain" -> {
+				Domain domain = ((Subdomain) lastSavedPart).getDomain();
+				log.debug("Decided to reload subdomains with parent domain_id {}", domain.getId());
+				loadSubdomains(domain);
+				listSubdomain.getSelectionModel().select((Subdomain) lastSavedPart);
 			}
 			case "Root" -> {
-				log.debug("Decided to reload roots");
-				loadRoots();
+				DomainLike parent = ((Root) lastSavedPart).getParent();
+				log.debug(
+						"Decided to reload roots with parent {} {}",
+						((Root) lastSavedPart).getParentFieldName(),
+						parent.getId()
+				);
+				loadRoots(parent);
+				
 				listRoot.getSelectionModel().select((Root) lastSavedPart);
-				loadAspects((Root) lastSavedPart);
-				loadTopics(null);
+				// loadTopics(null);
 			}
 			case "Aspect" -> {
-				Root root = ((Aspect) lastSavedPart).getRoot();
-				log.debug("Decided to reload aspects with parent root_id {}", root.getId());
-				loadAspects(root);
+				Domain domain = ((Aspect) lastSavedPart).getDomain();
+				log.debug("Decided to reload aspects with parent domain_id {}", domain.getId());
+				loadAspects(domain);
 				listAspect.getSelectionModel().select((Aspect) lastSavedPart);
 				loadTopics((Aspect) lastSavedPart);
 			}
@@ -463,7 +467,7 @@ public class InventoryManagerController implements Initializable {
 	 * @param selectedPart The part to delete.
 	 * @return {@code true} if the deletion was successful, {@code false} otherwise.
 	 */
-	private boolean safelyDeletePart(@NotNull CallNumberPart selectedPart) {
+	private boolean safelyDeletePart(@NonNull CallNumberPart selectedPart) {
 		// This part can have children
 		if (selectedPart.hasChild()) {
 			log.debug("Parent {} can have children", selectedPart);
@@ -523,7 +527,7 @@ public class InventoryManagerController implements Initializable {
 				if (result.isPresent() && result.get() == ButtonType.OK) {
 					log.info("Attempting to cascade-delete {} '{}'", selectedPart.getClass().getSimpleName(), selectedPart.formatString());
 					@SuppressWarnings("unchecked")
-					Dao<CallNumberPart, Long> parentDao = (Dao<CallNumberPart, Long>) dbManager.getDao(selectedPart.getClass());
+					Dao<CallNumberPart, Long> parentDao = (Dao<CallNumberPart, Long>) dbManager.getPartDao(selectedPart.getClass());
 					
 					try {
 						String formattedParentName = selectedPart.formatString();
@@ -583,7 +587,7 @@ public class InventoryManagerController implements Initializable {
 	 * @param prompt Whether the user will be prompted to delete.
 	 * @return {@code true} if the deletion was successful, {@code false} otherwise.
 	 */
-	private boolean simpleDeletePart(@NotNull CallNumberPart selectedPart, boolean prompt) {
+	private boolean simpleDeletePart(@NonNull CallNumberPart selectedPart, boolean prompt) {
 		assert (
 				!selectedPart.hasChild()
 				|| ((HasChildPart<?>) selectedPart).getChildCollection().stream().noneMatch(c -> (
@@ -609,7 +613,7 @@ public class InventoryManagerController implements Initializable {
 			// Confirmed
 			if (result.isPresent() && result.get() == ButtonType.OK) {
 				@SuppressWarnings("unchecked")
-				Dao<CallNumberPart, Long> parentDao = (Dao<CallNumberPart, Long>) dbManager.getDao(
+				Dao<CallNumberPart, Long> parentDao = (Dao<CallNumberPart, Long>) dbManager.getPartDao(
 						selectedPart.getClass());
 				
 				log.info("Attempting simple deletion (with-prompt) of {}", selectedPart);
@@ -656,7 +660,7 @@ public class InventoryManagerController implements Initializable {
 			log.info("Attempting simple deletion (no-prompt) of {}", selectedPart);
 			try {
 				@SuppressWarnings("unchecked")
-				Dao<CallNumberPart, Long> parentDao = (Dao<CallNumberPart, Long>) dbManager.getDao(selectedPart.getClass());
+				Dao<CallNumberPart, Long> parentDao = (Dao<CallNumberPart, Long>) dbManager.getPartDao(selectedPart.getClass());
 				parentDao.delete(selectedPart);
 				String selToStr = selectedPart.toString();
 				log.info("Successfully deleted (no-prompt) {}", selToStr);
@@ -683,40 +687,48 @@ public class InventoryManagerController implements Initializable {
 	}
 	
 	
-	private void loadSubjects() {
+	private void loadDomains() {
 		try {
-			var subjects = dbManager.subjects.queryForAll();
-			allSubjects.set(FXCollections.observableList(subjects));
+			var domains = dbManager.domains.queryForAll();
+			allDomains.set(FXCollections.observableList(domains));
 		} catch (SQLException e) {
-			log.error("Failed to get subjects", e);
-			// listSubject.setItems(null);
-			allSubjects.clear();
+			log.error("Failed to get domains", e);
+			// listDomain.setItems(null);
+			allDomains.clear();
 		}
 	}
 	
-	private void loadDomains(@Nullable Subject parentSubject) {
-		if (parentSubject == null) {
-			allDomains.clear();
+	private void loadSubdomains(@Nullable Domain parentDomain) {
+		if (parentDomain == null) {
+			allSubdomains.clear();
 		} else {
 			try {
-				QueryBuilder<Domain, Long> queryBuilder = dbManager.domains.queryBuilder();
-				queryBuilder.where().eq(Domain.FIELD_NAME_SUBJECT, parentSubject.getId());
-				PreparedQuery<Domain> preparedQuery = queryBuilder.prepare();
-				ObservableList<Domain> items = FXCollections.observableList(dbManager.domains.query(preparedQuery));
-				allDomains.set(items);
+				QueryBuilder<Subdomain, Long> queryBuilder = dbManager.subdomains.queryBuilder();
+				queryBuilder.where().eq(Subdomain.FIELD_NAME_DOMAIN, parentDomain.getId());
+				PreparedQuery<Subdomain> preparedQuery = queryBuilder.prepare();
+				ObservableList<Subdomain> items = FXCollections.observableList(dbManager.subdomains.query(preparedQuery));
+				allSubdomains.set(items);
 				
 			} catch (SQLException e) {
-				log.error("Failed to query domains with parent subject id '{}'", parentSubject.getId(), e);
-				// listDomain.setItems(null);
-				allDomains.clear();
+				log.error("Failed to query subdomains with parent domain id '{}'", parentDomain.getId(), e);
+				// listSubdomain.setItems(null);
+				allSubdomains.clear();
 			}
 		}
 	}
 	
-	private void loadRoots() {
+	/**
+	 * Get the roots with the specified parent {@link Domain}. To unload roots, call {@code allRoots.clear()}.
+	 *
+	 * @param parentDomain The parent {@link Domain} used to select roots.
+	 */
+	private void loadRoots(@NonNull Domain parentDomain) {
 		try {
-			var roots = dbManager.roots.queryForAll();
-			allRoots.set(FXCollections.observableList(roots));
+			QueryBuilder<Root, Long> queryBuilder = dbManager.roots.queryBuilder();
+			queryBuilder.where().eq(Root.FIELD_NAME_DOMAIN, parentDomain.getId());
+			PreparedQuery<Root> preparedQuery = queryBuilder.prepare();
+			ObservableList<Root> items = FXCollections.observableList(dbManager.roots.query(preparedQuery));
+			allRoots.set(items);
 
 		} catch (SQLException e) {
 			log.error("Failed to get roots", e);
@@ -724,19 +736,48 @@ public class InventoryManagerController implements Initializable {
 		}
 	}
 	
-	private void loadAspects(@Nullable Root parentRoot) {
-		if (parentRoot == null) {
+	/**
+	 * Get the roots with the specified parent {@link Subdomain}. To unload roots, call {@code allRoots.clear()}.
+	 *
+	 * @param parentSubdomain The parent {@link Subdomain} used to select roots.
+	 */
+	private void loadRoots(@NonNull Subdomain parentSubdomain) {
+		try {
+			QueryBuilder<Root, Long> queryBuilder = dbManager.roots.queryBuilder();
+			queryBuilder.where().eq(Root.FIELD_NAME_SUBDOMAIN, parentSubdomain.getId());
+			PreparedQuery<Root> preparedQuery = queryBuilder.prepare();
+			ObservableList<Root> items = FXCollections.observableList(dbManager.roots.query(preparedQuery));
+			allRoots.set(items);
+			
+		} catch (SQLException e) {
+			log.error("Failed to get roots", e);
+			allRoots.clear();
+		}
+	}
+	
+	private void loadRoots(@NonNull DomainLike parent) {
+		if (parent.getClass() == Domain.class) {
+			Domain domain = (Domain) parent;
+			loadRoots(domain);
+		} else if (parent.getClass() == Subdomain.class) {
+			Subdomain subdomain = (Subdomain) parent;
+			loadRoots(subdomain);
+		}
+	}
+	
+	private void loadAspects(@Nullable Domain parentDomain) {
+		if (parentDomain == null) {
 			allAspects.clear();
 		} else {
 			try {
 				QueryBuilder<Aspect, Long> queryBuilder = dbManager.aspects.queryBuilder();
-				queryBuilder.where().eq(Aspect.FIELD_NAME_ROOT, parentRoot.getId());
+				queryBuilder.where().eq(Aspect.FIELD_NAME_DOMAIN, parentDomain.getId());
 				PreparedQuery<Aspect> preparedQuery = queryBuilder.prepare();
 				ObservableList<Aspect> items = FXCollections.observableList(dbManager.aspects.query(preparedQuery));
 				allAspects.set(items);
-
+				
 			} catch (SQLException e) {
-				log.error("Failed to query aspects with parent root id '{}'", parentRoot.getId(), e);
+				log.error("Failed to query aspects with parent domain id '{}'", parentDomain.getId(), e);
 				allAspects.clear();
 			}
 		}
@@ -775,22 +816,6 @@ public class InventoryManagerController implements Initializable {
 	// LIST CLICK HANDLERS //
 	
 	@FXML
-	private void onMouseClickListSubject(MouseEvent mouseEvent) {
-		mouseEvent.consume();
-		
-		Subject selectedSubject = listSubject.getSelectionModel().getSelectedItem();
-		log.debug("Selected subject: {}", selectedSubject);
-		if (selectedSubject == null) {
-			return;
-		}
-		
-		selectPartForEditing(selectedSubject);
-		// this func also sets `selectedPart`
-		
-		loadDomains(selectedSubject);
-	}
-	
-	@FXML
 	private void onMouseClickListDomain(MouseEvent mouseEvent) {
 		mouseEvent.consume();
 		
@@ -800,10 +825,30 @@ public class InventoryManagerController implements Initializable {
 			return;
 		}
 		
-		parentPart = selectedDomain.getSubject();
-		
 		selectPartForEditing(selectedDomain);
 		// this func also sets `selectedPart`
+		
+		loadSubdomains(selectedDomain);
+		loadRoots(selectedDomain);
+		loadAspects(selectedDomain);
+	}
+	
+	@FXML
+	private void onMouseClickListSubdomain(MouseEvent mouseEvent) {
+		mouseEvent.consume();
+		
+		Subdomain selectedSubdomain = listSubdomain.getSelectionModel().getSelectedItem();
+		log.debug("Selected subdomain: {}", selectedSubdomain);
+		if (selectedSubdomain == null) {
+			return;
+		}
+		
+		parentPart = selectedSubdomain.getDomain();
+		
+		selectPartForEditing(selectedSubdomain);
+		// this func also sets `selectedPart`
+		
+		loadRoots(selectedSubdomain);
 	}
 	
 	@FXML
@@ -817,8 +862,6 @@ public class InventoryManagerController implements Initializable {
 		}
 		
 		selectPartForEditing(selectedRoot);
-		
-		loadAspects(selectedRoot);
 	}
 	
 	@FXML
@@ -868,21 +911,21 @@ public class InventoryManagerController implements Initializable {
 	// Create
 	
 	@FXML
-	private void onClickButtonNewSubject(ActionEvent event) {
+	private void onClickButtonNewDomain(ActionEvent event) {
 		event.consume();
-		log.debug("Button clicked: new subject");
+		log.debug("Button clicked: new domain");
 		
-		prepareEditPaneForNewPart(null, Subject.class);
+		prepareEditPaneForNewPart(null, Domain.class);
 		
 		selectedPartNameField.requestFocus();
 	}
 
 	@FXML
-	private void onClickButtonNewDomain(ActionEvent event) {
+	private void onClickButtonNewSubdomain(ActionEvent event) {
 		event.consume();
-		log.debug("Button clicked: new domain");
+		log.debug("Button clicked: new subdomain");
 		
-		prepareEditPaneForNewPart(listSubject.getSelectionModel().getSelectedItem(), Domain.class);
+		prepareEditPaneForNewPart(listDomain.getSelectionModel().getSelectedItem(), Subdomain.class);
 		
 		selectedPartNameField.requestFocus();
 	}
@@ -892,7 +935,14 @@ public class InventoryManagerController implements Initializable {
 		event.consume();
 		log.debug("Button clicked: new root");
 		
-		prepareEditPaneForNewPart(null, Root.class);
+		if (selectedPart.getClass() == Domain.class) {
+			prepareEditPaneForNewPart(listDomain.getSelectionModel().getSelectedItem(), Root.class);
+		} else if (selectedPart.getClass() == Subdomain.class) {
+			prepareEditPaneForNewPart(listSubdomain.getSelectionModel().getSelectedItem(), Root.class);
+		} else {
+			throw new RuntimeException("Root's parent is not Domain or Subdomain, is "
+					                           + selectedPart.getClass().getSimpleName());
+		}
 		
 		selectedPartNameField.requestFocus();
 	}
@@ -902,7 +952,7 @@ public class InventoryManagerController implements Initializable {
 		event.consume();
 		log.debug("Button clicked: new aspect");
 		
-		prepareEditPaneForNewPart(listRoot.getSelectionModel().getSelectedItem(), Aspect.class);
+		prepareEditPaneForNewPart(listDomain.getSelectionModel().getSelectedItem(), Aspect.class);
 		
 		selectedPartNameField.requestFocus();
 	}
@@ -912,9 +962,18 @@ public class InventoryManagerController implements Initializable {
 		event.consume();
 		log.debug("Button clicked: new topic");
 		
-		prepareEditPaneForNewPart(listAspect.getSelectionModel().getSelectedItem(), Topic.class);
+		var selected = listAspect.getSelectionModel().getSelectedItem();
+		if (selected != null) {
+			prepareEditPaneForNewPart(selected, Topic.class);
+			selectedPartNameField.requestFocus();
+		} else {
+			Alert alert = new Alert(Alert.AlertType.ERROR);
+			alert.setHeaderText(null);
+			alert.setTitle("Topic creation failed");
+			alert.setContentText("You have to select an aspect before you can create a topic.");
+			alert.showAndWait();
+		}
 		
-		selectedPartNameField.requestFocus();
 	}
 	
 	@FXML
@@ -949,33 +1008,33 @@ public class InventoryManagerController implements Initializable {
 	// Delete
 	
 	@FXML
-	private void onClickButtonDeleteSubject(ActionEvent event) {
-		log.debug("Button clicked: delete subject");
-		event.consume();
-		
-		@Nullable Subject selectedSubject = listSubject.getSelectionModel().getSelectedItem();
-		if (selectedSubject == null) {
-			return;
-		}
-		
-		if (safelyDeletePart(selectedSubject)) {
-			loadSubjects();
-			loadDomains(listSubject.getSelectionModel().getSelectedItem());
-		}
-	}
-	
-	@FXML
 	private void onClickButtonDeleteDomain(ActionEvent event) {
 		log.debug("Button clicked: delete domain");
 		event.consume();
 		
-		@Nullable Domain selectedDomain = listDomain.getSelectionModel().getSelectedItem();
+		@org.jetbrains.annotations.Nullable Domain selectedDomain = listDomain.getSelectionModel().getSelectedItem();
 		if (selectedDomain == null) {
 			return;
 		}
 		
 		if (safelyDeletePart(selectedDomain)) {
-			loadDomains(null);
+			loadDomains();
+			loadSubdomains(listDomain.getSelectionModel().getSelectedItem());
+		}
+	}
+	
+	@FXML
+	private void onClickButtonDeleteSubdomain(ActionEvent event) {
+		log.debug("Button clicked: delete subdomain");
+		event.consume();
+		
+		@org.jetbrains.annotations.Nullable Subdomain selectedSubdomain = listSubdomain.getSelectionModel().getSelectedItem();
+		if (selectedSubdomain == null) {
+			return;
+		}
+		
+		if (safelyDeletePart(selectedSubdomain)) {
+			loadSubdomains(null);
 		}
 	}
 	
@@ -984,14 +1043,21 @@ public class InventoryManagerController implements Initializable {
 		log.debug("Button clicked: delete root");
 		event.consume();
 		
-		@Nullable Root selectedRoot = listRoot.getSelectionModel().getSelectedItem();
+		@org.jetbrains.annotations.Nullable Root selectedRoot = listRoot.getSelectionModel().getSelectedItem();
 		if (selectedRoot == null) {
 			return;
 		}
 		
+		var parentClass = selectedRoot.getParentClass();
+		
 		if (safelyDeletePart(selectedRoot)) {
-			loadRoots();
-			loadAspects(null);
+			if (parentClass == Domain.class) {
+				loadRoots(listDomain.getSelectionModel().getSelectedItem());
+			} else if (parentClass == Subdomain.class) {
+				loadRoots(listSubdomain.getSelectionModel().getSelectedItem());
+			} else {
+				throw new RuntimeException("Somehow this root's parent isn't domain or subdomain, it's " + parentClass.getSimpleName());
+			}
 		}
 	}
 	
@@ -1000,13 +1066,13 @@ public class InventoryManagerController implements Initializable {
 		log.debug("Button clicked: delete aspect");
 		event.consume();
 		
-		@Nullable Aspect selectedAspect = listAspect.getSelectionModel().getSelectedItem();
+		@org.jetbrains.annotations.Nullable Aspect selectedAspect = listAspect.getSelectionModel().getSelectedItem();
 		if (selectedAspect == null) {
 			return;
 		}
 		
 		if (safelyDeletePart(selectedAspect)) {
-			loadAspects(listRoot.getSelectionModel().getSelectedItem());
+			loadAspects(listDomain.getSelectionModel().getSelectedItem());
 			loadTopics(null);
 		}
 	}
@@ -1016,7 +1082,7 @@ public class InventoryManagerController implements Initializable {
 		log.debug("Button clicked: delete topic");
 		event.consume();
 		
-		@Nullable Topic selectedTopic = listTopic.getSelectionModel().getSelectedItem();
+		@org.jetbrains.annotations.Nullable Topic selectedTopic = listTopic.getSelectionModel().getSelectedItem();
 		if (selectedTopic == null) {
 			return;
 		}
@@ -1031,7 +1097,7 @@ public class InventoryManagerController implements Initializable {
 		log.debug("Button clicked: delete author/publisher");
 		event.consume();
 		
-		@Nullable AuthorPublisher selectedAuthorPublisher = listAuthorPublisher.getSelectionModel().getSelectedItem();
+		@org.jetbrains.annotations.Nullable AuthorPublisher selectedAuthorPublisher = listAuthorPublisher.getSelectionModel().getSelectedItem();
 		if (selectedAuthorPublisher == null) {
 			return;
 		}

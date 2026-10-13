@@ -15,7 +15,8 @@ version = "1.0.0"
 
 var globalAppName = "JDesktop"
 var globalMainModule = "org.bitterrootproject.jdesktop"
-var globalMainClassFQ = "org.bitterrootproject.jdesktop.AppMain"
+var globalManClass = if (project.hasProperty("mainClass")) project.property("mainClass").toString() else "AppMain"
+var globalMainClassFQ = "$globalMainModule.$globalManClass"
 
 
 repositories {
@@ -109,10 +110,17 @@ dependencies {
     // Used to get the right folders on each OS
     implementation("net.harawata:appdirs:1.5.0")
 
+    // XML parsing
+    //implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.22.2")
+
+    // Minimal JSON support
+//    implementation("org.json:json:20260814")
+
 
     // Extra helpful stuff
     implementation("org.apache.commons:commons-lang3:3.20.0")
     implementation("org.jetbrains:annotations:26.1.0")
+    implementation("org.jspecify:jspecify:1.0.1")
 }
 
 tasks.withType<Test> {
@@ -155,9 +163,12 @@ jlink {
 ////            "--name", "JDesktop"
 //        ]
         mainClass = globalMainClassFQ
-        icon = when {
-            osType == OsType.MAC -> "src/main/resources/org/bitterrootproject/jdesktop/mac-icon.icns"
-            else -> ""
+        icon = when (osType) {
+            OsType.MAC -> "src/main/resources/org/bitterrootproject/jdesktop/icon-mac.icns"
+            OsType.WINDOWS -> "src/main/resources/org/bitterrootproject/jdesktop/icon-win.ico"
+            OsType.LINUX, OsType.UNIX -> "src/main/resources/org/bitterrootproject/jdesktop/icon-linux.png"
+            // default to PNG if OS type other or unknown
+            else -> "src/main/resources/org/bitterrootproject/jdesktop/icon-linux.png"
         }
 //        description = "Bitterroot Project JDesktop"
 //        vendor = "Bitterroot Project"

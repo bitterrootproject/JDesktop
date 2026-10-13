@@ -100,8 +100,8 @@ public class CallNumberTableController implements Initializable {
 			
 			// Watch the filter fields for any changes
 			Runnable reapplyFilter = () -> filteredCallNumbers.setPredicate( callNumber -> (
-					filterContains(filterSubject.getText(), callNumber.getSubject())
-					&& filterContains(filterDomain.getText(), callNumber.getDomain())
+					filterContains(filterSubject.getText(), callNumber.getDomain())
+					&& filterContains(filterDomain.getText(), callNumber.getSubdomain())
 					&& filterContains(filterRoot.getText(), callNumber.getRoot())
 					&& filterContains(filterAspect.getText(), callNumber.getAspect())
 					&& filterContains(filterTopic.getText(), callNumber.getTopic())

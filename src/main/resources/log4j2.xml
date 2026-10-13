@@ -66,6 +66,10 @@
       <AppenderRef ref="ORMLite" />
     </Logger>
 
+    <Logger name="org.xerial.sqlitejdbc" level="DEBUG">
+      <AppenderRef ref="ORMLite"/>
+    </Logger>
+
     <Root level="INFO">
       <AppenderRef ref="CONSOLE" level="INFO" />
     </Root>

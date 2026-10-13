@@ -3,7 +3,6 @@ package org.bitterrootproject.jdesktop;
 import javafx.application.Application;
 import net.harawata.appdirs.AppDirs;
 import net.harawata.appdirs.AppDirsFactory;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
@@ -25,11 +24,11 @@ public class AppMain {
 		// Set the right directory for all logs to be stored in.
 		// String logLocation;
 		if (isRuntimeContextDev()) {
-			@NotNull String logLocation = "dev-data";
+			String logLocation = "dev-data";
 			System.setProperty("log.location", logLocation);
 			System.out.printf("Set log file path: %s\n", logLocation);
 		} else {
-			@NotNull String logLocation = appDirs.getUserLogDir(
+			@org.jetbrains.annotations.NotNull String logLocation = appDirs.getUserLogDir(
 				"JDesktop",
 				null,
 				"Bitterroot Project"

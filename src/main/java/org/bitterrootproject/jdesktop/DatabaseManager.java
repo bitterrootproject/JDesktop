@@ -8,6 +8,7 @@ import lombok.extern.log4j.Log4j2;
 import org.bitterrootproject.jdesktop.models.*;
 import org.bitterrootproject.jdesktop.utils.EnvTools;
 import org.bitterrootproject.jdesktop.utils.FileManager;
+import org.jspecify.annotations.NonNull;
 
 import java.nio.file.Path;
 import java.sql.SQLException;
@@ -25,6 +26,7 @@ public final class DatabaseManager {
 	 * @param local Store the database file in the repository. Useful for testing.
 	 * @return String path to the database file.
 	 */
+	@NonNull
 	private static String getDatabaseUrl(boolean local) {
 		if (local) {
 			return "jdbc:sqlite:dev-data/db.sqlite3";
@@ -40,13 +42,13 @@ public final class DatabaseManager {
 	
 	private final JdbcConnectionSource connectionSource;
 	
-	public final Dao<Subject, Long> subjects;
-	public final Dao<Domain, Long> domains;
-	public final Dao<Root, Long> roots;
-	public final Dao<Aspect, Long> aspects;
-	public final Dao<Topic, Long> topics;
-	public final Dao<AuthorPublisher, Long> authorPublishers;
-	public final Dao<CallNumber, Long> callNumbers;
+	public final @NonNull Dao<Domain, Long> domains;
+	public final @NonNull Dao<Subdomain, Long> subdomains;
+	public final @NonNull Dao<Root, Long> roots;
+	public final @NonNull Dao<Aspect, Long> aspects;
+	public final @NonNull Dao<Topic, Long> topics;
+	public final @NonNull Dao<AuthorPublisher, Long> authorPublishers;
+	public final @NonNull Dao<CallNumber, Long> callNumbers;
 	
 	
 	/**
@@ -54,8 +56,8 @@ public final class DatabaseManager {
 	 */
 	private void initializeTables() {
 		try {
-			TableUtils.createTableIfNotExists(connectionSource, Subject.class);
 			TableUtils.createTableIfNotExists(connectionSource, Domain.class);
+			TableUtils.createTableIfNotExists(connectionSource, Subdomain.class);
 			TableUtils.createTableIfNotExists(connectionSource, Root.class);
 			TableUtils.createTableIfNotExists(connectionSource, Aspect.class);
 			TableUtils.createTableIfNotExists(connectionSource, Topic.class);
@@ -77,8 +79,8 @@ public final class DatabaseManager {
 		this.connectionSource = connectionSource;
 		initializeTables();
 		
-		this.subjects = DaoManager.createDao(connectionSource, Subject.class);
 		this.domains = DaoManager.createDao(connectionSource, Domain.class);
+		this.subdomains = DaoManager.createDao(connectionSource, Subdomain.class);
 		this.roots = DaoManager.createDao(connectionSource, Root.class);
 		this.aspects = DaoManager.createDao(connectionSource, Aspect.class);
 		this.topics = DaoManager.createDao(connectionSource, Topic.class);
@@ -92,6 +94,7 @@ public final class DatabaseManager {
 	 * established or another error occurs, this function fails and exits(1).
 	 * @return The database manager singleton.
 	 */
+	@NonNull
 	public static DatabaseManager getInstance() {
 		if (INSTANCE == null) {
 			try (JdbcConnectionSource connectionSource = DatabaseManager.openConnection()) {
@@ -114,6 +117,7 @@ public final class DatabaseManager {
 	 * @return Database connection
 	 * @throws SQLException If a connection could not be made
 	 */
+	@NonNull
 	private static JdbcConnectionSource openConnection() throws SQLException {
 		boolean useLocalDb = EnvTools.getBoolean("DEV", false);
 		
@@ -133,15 +137,16 @@ public final class DatabaseManager {
 	 * @param partClassName Name of the class (in PascalCase)
 	 * @return The DAO for the specified class name
 	 */
-	public Dao<? extends CallNumberPart, Long> getDao(String partClassName) {
+	@NonNull
+	public Dao<? extends CallNumberPart, Long> getPartDao(String partClassName) {
 		return switch (partClassName) {
-			case "Subject" -> this.subjects;
 			case "Domain" -> this.domains;
+			case "Subdomain" -> this.subdomains;
 			case "Root" -> this.roots;
 			case "Aspect" -> this.aspects;
 			case "Topic" -> this.topics;
 			case "AuthorPublisher" -> this.authorPublishers;
-			default -> null;
+			default -> throw new RuntimeException(String.format("No DAO associated with type '%s'", partClassName));
 		};
 	}
 	
@@ -150,7 +155,8 @@ public final class DatabaseManager {
 	 * @param partClass The actual class (not it's name or an instance)
 	 * @return The DAO for the given class
 	 */
-	public Dao<? extends CallNumberPart, Long> getDao(Class<? extends CallNumberPart> partClass) {
-		return getDao(partClass.getSimpleName());
+	@NonNull
+	public Dao<? extends CallNumberPart, Long> getPartDao(Class<? extends CallNumberPart> partClass) {
+		return getPartDao(partClass.getSimpleName());
 	}
 }
